@@ -1,0 +1,44 @@
+effective-pom
+target/
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+# Maven Flatten Plugin
+.flattened-pom.xml
+### eclipse ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+out/
+
+### NetBeans ###
+nbproject/private/
+build/
+nbbuild/
+dist/
+nbdist/
+bin/
+doc/
+.DS_Store
+
+### Logs ###
+/logs/
+
+### VS Code ###
+.vscode/
+
+### AI ###
+.cursor/
+openspec/
+
+application-local.yml
+docs/plans

@@ -1,0 +1,7 @@
+logging:
+  level:
+    io.yggdrasil.labs.midgard.*: warn
+    root: warn
+
+# 生产环境特定配置
+# 例如：数据库连接、Redis、监控等

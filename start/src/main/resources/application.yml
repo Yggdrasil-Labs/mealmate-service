@@ -1,0 +1,5 @@
+spring:
+  application:
+    name: midgard-backend-template
+  profiles:
+    active: local

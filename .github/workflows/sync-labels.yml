@@ -1,0 +1,12 @@
+name: Sync labels
+
+on:
+  workflow_dispatch:
+
+jobs:
+  sync:
+    uses: Yggdrasil-Labs/.github/.github/workflows/sync-labels.yml@main
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write

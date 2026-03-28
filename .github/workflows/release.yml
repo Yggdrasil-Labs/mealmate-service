@@ -1,0 +1,477 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: '发布版本号（例如：1.2.3）。会自动使用 tag：v{version} 的代码执行。'
+        required: true
+        type: string
+      skip_docker:
+        description: '可选：跳过发布 Docker 镜像（GHCR）'
+        required: false
+        type: boolean
+        default: false
+
+env:
+  MAVEN_OPTS: -Xmx1024m -XX:+UseG1GC
+  JAVA_VERSION: '17'
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      ref: ${{ steps.vars.outputs.ref }}
+      tag: ${{ steps.vars.outputs.tag }}
+      version: ${{ steps.vars.outputs.version }}
+    steps:
+      - name: Resolve release tag/ref/version
+        id: vars
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            INPUT_VERSION="${{ inputs.version }}"
+            VERSION="${INPUT_VERSION#v}"
+            TAG="v${VERSION}"
+            REF="refs/tags/${TAG}"
+          else
+            TAG="${GITHUB_REF#refs/tags/}"
+            VERSION="${TAG#v}"
+            REF="${GITHUB_REF}"
+          fi
+
+          echo "Resolved ref: $REF"
+          echo "Resolved tag: $TAG"
+          echo "Resolved version: $VERSION"
+
+          echo "ref=$REF" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+  build-verify:
+    runs-on: ubuntu-latest
+    needs: [ prepare ]
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          ref: ${{ needs.prepare.outputs.ref }}
+          fetch-depth: 0
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@f2beeb24e141e01a676f977032f5a29d81c9e27e
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Make Maven Wrapper executable
+        run: |
+          if [ -f "mvnw" ]; then
+            chmod +x mvnw
+            ls -la mvnw
+            echo "Maven Wrapper made executable"
+          else
+            echo "Error: mvnw not found"
+            exit 1
+          fi
+
+      - name: Verify build (format check + compile)
+        run: ./mvnw -B -U spotless:check clean package -DskipTests
+
+  build-release:
+    runs-on: ubuntu-latest
+    needs: [ prepare, build-verify ]
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          ref: ${{ needs.prepare.outputs.ref }}
+          fetch-depth: 0
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@f2beeb24e141e01a676f977032f5a29d81c9e27e
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Make Maven Wrapper executable
+        run: |
+          if [ -f "mvnw" ]; then
+            chmod +x mvnw
+            ls -la mvnw
+            echo "Maven Wrapper made executable"
+          else
+            echo "Error: mvnw not found"
+            exit 1
+          fi
+
+      - name: Update version in pom.xml for release
+        run: |
+          VERSION="${{ needs.prepare.outputs.version }}"
+          
+          if [ -z "$VERSION" ]; then
+            echo "Error: Version is empty"
+            exit 1
+          fi
+          
+          echo "Updating pom.xml revision to: $VERSION"
+          
+          # 使用 sed 更新 pom.xml 中的版本号（GitHub Actions runner 是 Linux）
+          sed -i "s|<revision>[^<]*</revision>|<revision>$VERSION</revision>|g" pom.xml
+          
+          echo "Updated pom.xml:"
+          grep -A 2 -B 2 "<revision>" pom.xml
+          
+          # 验证所有子模块的 pom.xml 也会使用正确的版本号
+          echo ""
+          echo "Verifying version in submodules..."
+          find . -name "pom.xml" -type f | head -5 | while read pom; do
+            if grep -q "<version>\${revision}</version>" "$pom" 2>/dev/null; then
+              echo "  ✓ $pom uses \${revision}"
+            fi
+          done
+
+      - name: Configure Maven for GitHub Packages
+        run: |
+          mkdir -p ~/.m2
+          cat > ~/.m2/settings.xml << 'EOF'
+          <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+                    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                    xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 https://maven.apache.org/xsd/settings-1.0.0.xsd">
+            <servers>
+              <server>
+                <id>github</id>
+                <username>${env.GITHUB_ACTOR}</username>
+                <password>${env.GITHUB_TOKEN}</password>
+              </server>
+            </servers>
+          </settings>
+          EOF
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Flatten POM files before deploy
+        run: |
+          VERSION="${{ needs.prepare.outputs.version }}"
+          echo "Executing flatten:flatten to replace \${revision} variables with version: $VERSION"
+          ./mvnw -B -U -Drevision=$VERSION flatten:flatten
+          echo "Flatten completed. Verifying flattened POMs..."
+          find . -name ".flattened-pom.xml" -type f | head -3 | while read pom; do
+            echo "Checking: $pom"
+            if grep -q "<version>\${revision}</version>" "$pom" 2>/dev/null; then
+              echo "  ⚠️  WARNING: $pom still contains \${revision}"
+            else
+              echo "  ✓ $pom has been flattened correctly"
+            fi
+          done
+
+      - name: Build packages (jar files)
+        run: |
+          VERSION="${{ needs.prepare.outputs.version }}"
+          echo "Building packages with version: $VERSION"
+          ./mvnw -B -U -DskipTests=true -Drevision=$VERSION \
+            package
+          echo "Verifying jar files were built..."
+          find . -name "*.jar" -path "*/target/*" -not -path "*/original-*" | head -10
+
+  # ==================== Docker 镜像发布（GHCR） ====================
+  publish-docker-image:
+    runs-on: ubuntu-latest
+    needs: [ prepare, build-release ]
+    if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.skip_docker) }}
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          ref: ${{ needs.prepare.outputs.ref }}
+          fetch-depth: 0
+
+      - name: Update version in pom.xml for docker build
+        run: |
+          VERSION="${{ needs.prepare.outputs.version }}"
+          echo "Updating pom.xml revision to: $VERSION"
+          sed -i "s|<revision>[^<]*</revision>|<revision>$VERSION</revision>|g" pom.xml
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Normalize Docker image name
+        id: image
+        shell: bash
+        run: |
+          IMAGE_ID="ghcr.io/${{ github.repository }}"
+          IMAGE_ID="${IMAGE_ID,,}"
+          echo "Using image id: $IMAGE_ID"
+          echo "image=$IMAGE_ID" >> "$GITHUB_OUTPUT"
+
+      - name: Extract metadata for Docker
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ steps.image.outputs.image }}
+          tags: |
+            type=semver,pattern={{version}},value=${{ needs.prepare.outputs.tag }}
+            type=raw,value=latest
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            GITHUB_ACTOR=${{ github.actor }}
+            GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
+            VERSION=${{ needs.prepare.outputs.version }}
+            REVISION=${{ github.sha }}
+            BUILD_DATE=${{ github.event.head_commit.timestamp || github.run_started_at }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Output image info
+        run: |
+          echo "============================================"
+          echo "🐳 Docker 镜像发布成功！"
+          echo "============================================"
+          echo ""
+          echo "📦 镜像地址:"
+          echo "   ${{ steps.image.outputs.image }}:${{ needs.prepare.outputs.version }}"
+          echo "   ${{ steps.image.outputs.image }}:latest"
+          echo ""
+          echo "🚀 拉取命令:"
+          echo "   docker pull ${{ steps.image.outputs.image }}:${{ needs.prepare.outputs.version }}"
+          echo ""
+          echo "▶️  运行命令:"
+          echo "   docker run -d --name midgard-backend \\"
+          echo "     -p 8081:8081 -p 20880:20880 \\"
+          echo "     -e SPRING_PROFILES_ACTIVE=dev \\"
+          echo "     ghcr.io/${{ github.repository }}:${{ needs.prepare.outputs.version }}"
+
+  create-github-release:
+    runs-on: ubuntu-latest
+    needs: [ prepare, build-release, publish-docker-image ]
+    if: >-
+      ${{ always()
+        && needs.build-release.result == 'success'
+        && (needs.publish-docker-image.result == 'success' || needs.publish-docker-image.result == 'skipped')
+      }}
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          ref: ${{ needs.prepare.outputs.ref }}
+          fetch-depth: 0
+
+      - name: Extract release notes from CHANGELOG
+        id: changelog
+        run: |
+          TAG_NAME="${{ needs.prepare.outputs.tag }}"
+          VERSION="${{ needs.prepare.outputs.version }}"
+          
+          # 默认 release notes（带图标）
+          DEFAULT_NOTES="## 🚀 Release $VERSION
+          
+          Release $VERSION is now available! 🎉
+          
+          📝 See the [changelog](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for details."
+          
+          # 检查 CHANGELOG.md 是否存在
+          if [ ! -f "CHANGELOG.md" ]; then
+            echo "CHANGELOG.md not found, using default release notes"
+            RELEASE_NOTES="$DEFAULT_NOTES"
+          else
+            # release-please 生成的 CHANGELOG 格式通常是：
+            # ## [1.0.0] - 2024-01-01
+            # 或
+            # ## 1.0.0 - 2024-01-01
+            
+            # 尝试提取对应版本的 release notes
+            # 使用 awk 提取从版本标题到下一个版本标题（或文件结尾）之间的内容
+            EXTRACTED=$(awk -v version="$VERSION" '
+              BEGIN {
+                found=0
+                in_section=0
+              }
+              /^## \[/ || /^## [0-9]/ {
+                if (in_section) exit
+                # 使用 index() 进行字面量字符串匹配，避免正则表达式元字符问题
+                # 检查格式: ## [1.0.0] 或 ## 1.0.0
+                if (index($0, "[" version "]") > 0 || index($0, "## " version) == 1) {
+                  found=1
+                  in_section=1
+                  print
+                  next
+                }
+              }
+              in_section { print }
+            ' CHANGELOG.md)
+            
+            if [ -n "$EXTRACTED" ] && [ ${#EXTRACTED} -gt 10 ]; then
+              # 只为版本标题添加火箭图标（CHANGELOG已经包含章节和条目的图标）
+              CHANGELOG_CONTENT=$(echo "$EXTRACTED" | sed \
+                -e 's/^## \[\([^]]*\)\]/## 🚀 Release \1/g' \
+                -e 's/^## \([0-9][^ ]*\) /## 🚀 Release \1 /g' \
+                -e 's/BREAKING CHANGE/💥 BREAKING CHANGE/g' \
+                -e 's/Breaking Change/💥 Breaking Change/g')
+              
+              # 分步骤构建 release notes，添加发布横幅和安装说明
+              RELEASE_NOTES=""
+              RELEASE_NOTES="${RELEASE_NOTES}🎉 **Release ${VERSION} is now available!**"
+              RELEASE_NOTES="${RELEASE_NOTES}"$'\n'$'\n'
+              RELEASE_NOTES="${RELEASE_NOTES}${CHANGELOG_CONTENT}"
+              RELEASE_NOTES="${RELEASE_NOTES}"$'\n'$'\n'
+              RELEASE_NOTES="${RELEASE_NOTES}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+              RELEASE_NOTES="${RELEASE_NOTES}"$'\n'$'\n'
+              RELEASE_NOTES="${RELEASE_NOTES}📖 [View Full Changelog](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) | 📋 [Documentation](https://github.com/${{ github.repository }}/blob/main/README.md)"
+              
+              echo "Successfully extracted and enhanced release notes from CHANGELOG.md"
+            else
+              echo "Could not extract release notes from CHANGELOG.md, using default"
+              RELEASE_NOTES="$DEFAULT_NOTES"
+            fi
+          fi
+          
+          # 使用 multiline output
+          {
+            echo "release_notes<<EOF"
+            echo "$RELEASE_NOTES"
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
+          
+          echo "Release notes prepared (first 300 chars):"
+          echo "$RELEASE_NOTES" | head -c 300
+          echo ""
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844
+        with:
+          tag_name: ${{ needs.prepare.outputs.tag }}
+          name: Release ${{ needs.prepare.outputs.version }}
+          body: ${{ steps.changelog.outputs.release_notes }}
+          draft: false
+          prerelease: false
+          generate_release_notes: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  update-dev-version:
+    runs-on: ubuntu-latest
+    needs: [ prepare, build-release, publish-docker-image ]
+    if: >-
+      ${{ always()
+        && needs.build-release.result == 'success'
+        && (needs.publish-docker-image.result == 'success' || needs.publish-docker-image.result == 'skipped')
+      }}
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Get released version from tag
+        id: get_version
+        run: |
+          TAG_NAME="${{ needs.prepare.outputs.tag }}"
+          VERSION="${{ needs.prepare.outputs.version }}"
+          TAG_SHA=$(git rev-parse $TAG_NAME^{commit} 2>/dev/null || git rev-parse HEAD)
+          
+          echo "Released version: $VERSION"
+          echo "Tag: $TAG_NAME"
+          echo "Tag commit SHA: $TAG_SHA"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag=$TAG_NAME" >> $GITHUB_OUTPUT
+          echo "tag_sha=$TAG_SHA" >> $GITHUB_OUTPUT
+
+      - name: Calculate next development version
+        id: next_version
+        run: |
+          VERSION="${{ steps.get_version.outputs.version }}"
+          # 移除可能的 -SNAPSHOT 后缀（如果有）
+          VERSION=${VERSION%-SNAPSHOT}
+          
+          # 解析版本号：主版本.次版本.修订版本
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+          
+          # 计算下一个开发版本（patch + 1，然后加上 -SNAPSHOT）
+          NEXT_PATCH=$((PATCH + 1))
+          NEXT_VERSION="${MAJOR}.${MINOR}.${NEXT_PATCH}-SNAPSHOT"
+          
+          echo "Current released version: $VERSION"
+          echo "Next development version: $NEXT_VERSION"
+          echo "next_version=$NEXT_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Checkout main branch
+        run: |
+          git checkout main
+          git pull origin main
+
+      - name: Update version
+        run: |
+          NEXT_VERSION="${{ steps.next_version.outputs.next_version }}"
+          
+          # 更新 pom.xml 中的版本号
+          echo "Updating pom.xml to version: $NEXT_VERSION"
+          sed -i.bak "s|<revision>[^<]*</revision>|<revision>$NEXT_VERSION</revision>|g" pom.xml
+          rm -f pom.xml.bak
+          
+          echo "Updated pom.xml content:"
+          grep -A 2 -B 2 "<revision>" pom.xml
+
+      - name: Commit and push changes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          
+          # 在提交前拉取最新更改
+          echo "Pulling latest changes from main before committing..."
+          git pull --rebase origin main || git pull origin main
+          
+          # 添加所有更改的文件
+          git add pom.xml
+          
+          # 检查是否有更改
+          if git diff --staged --quiet; then
+            echo "No changes to commit (version may already be updated)"
+          else
+            NEXT_VERSION="${{ steps.next_version.outputs.next_version }}"
+            
+            # 构建提交消息
+            COMMIT_MSG="chore: bump version to $NEXT_VERSION for next development cycle"
+            
+            git commit -m "$COMMIT_MSG"
+            
+            # 推送更改
+            git push origin main
+            
+            echo "Successfully updated version to $NEXT_VERSION"
+          fi
