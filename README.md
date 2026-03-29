@@ -70,7 +70,7 @@ flowchart TD
 
 ### 各层子包说明
 
-#### Client 层（`client`，外部协议契约，可选）
+#### Client 层（`mealmate-client`，外部协议契约，可选）
 
 | 子包 | 用途 | 命名规范 |
 |-----|------|---------|
@@ -79,7 +79,7 @@ flowchart TD
 
 **注意**：内部编排 DTO 不放在 Client。
 
-#### Adapter 层（`adapter`）
+#### Adapter 层（`mealmate-adapter`）
 
 | 子包 | 用途 | 命名规范 |
 |-----|------|---------|
@@ -89,7 +89,7 @@ flowchart TD
 | `rpc/provider` | RPC 服务提供者 | `{Domain}RpcProvider` |
 | `mq/consumer` | MQ 消息消费者 | `{Domain}MqConsumer` |
 
-#### App 层（`app`）
+#### App 层（`mealmate-app`）
 
 | 子包 | 用途 | 命名规范 |
 |-----|------|---------|
@@ -104,7 +104,7 @@ flowchart TD
 | `assembler` | Entity→CO 组装器 | `{Domain}Assembler` |
 | `listener` | 事件监听器 | `{Domain}EventListener` |
 
-#### Domain 层（`domain`）
+#### Domain 层（`mealmate-domain`）
 
 | 子包 | 用途 | 命名规范 |
 |-----|------|---------|
@@ -113,7 +113,7 @@ flowchart TD
 | `{aggregate}/repository` | 仓储接口 | `{Domain}Repository` |
 | `{aggregate}/event` | 领域事件 | `{Domain}{Action}Event`（过去时） |
 
-#### Infrastructure 层（`infrastructure`）
+#### Infrastructure 层（`mealmate-infrastructure`）
 
 | 子包 | 用途 | 命名规范 |
 |-----|------|---------|
@@ -247,8 +247,8 @@ public class CustomerDO { }
 ## 本地运行
 
 ```bash
-# 配置数据源等：start/src/main/resources/application-*.yml
-./mvnw spring-boot:run -pl start -am
+# 配置数据源等：mealmate-start/src/main/resources/application-*.yml
+./mvnw spring-boot:run -pl mealmate-start -am
 ```
 
 ## 相关资源

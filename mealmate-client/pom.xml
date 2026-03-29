@@ -8,27 +8,18 @@
         <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <artifactId>domain</artifactId>
+    <artifactId>mealmate-client</artifactId>
     <packaging>jar</packaging>
-    <name>domain</name>
+    <name>mealmate-client</name>
 
     <dependencies>
-        <!-- Domain 层只依赖自身与 COLA 组件，不依赖 client/app/infra -->
-        <!-- COLA components -->
         <dependency>
             <groupId>com.alibaba.cola</groupId>
-            <artifactId>cola-component-domain-starter</artifactId>
+            <artifactId>cola-component-dto</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.alibaba.cola</groupId>
-            <artifactId>cola-component-exception</artifactId>
-        </dependency>
-        <!-- COLA components End-->
-        
-        <!-- 工具类 -->
-        <dependency>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-lang3</artifactId>
+            <groupId>jakarta.validation</groupId>
+            <artifactId>jakarta.validation-api</artifactId>
         </dependency>
     </dependencies>
 </project>

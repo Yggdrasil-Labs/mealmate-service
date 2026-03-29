@@ -10,7 +10,7 @@
 # Maven
 target/
 */target/
-!start/target/*.jar
+!mealmate-start/target/*.jar
 
 # Logs
 *.log

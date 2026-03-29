@@ -33,12 +33,12 @@
     </properties>
 
     <modules>
-        <module>client</module>
-        <module>adapter</module>
-        <module>app</module>
-        <module>domain</module>
-        <module>infrastructure</module>
-        <module>start</module>
+        <module>mealmate-client</module>
+        <module>mealmate-adapter</module>
+        <module>mealmate-app</module>
+        <module>mealmate-domain</module>
+        <module>mealmate-infrastructure</module>
+        <module>mealmate-start</module>
     </modules>
 
     <dependencies>
@@ -83,27 +83,27 @@
             <!--Project modules-->
             <dependency>
                 <groupId>io.github.yggdrasil-labs</groupId>
-                <artifactId>adapter</artifactId>
+                <artifactId>mealmate-adapter</artifactId>
                 <version>${revision}</version>
             </dependency>
             <dependency>
                 <groupId>io.github.yggdrasil-labs</groupId>
-                <artifactId>client</artifactId>
+                <artifactId>mealmate-client</artifactId>
                 <version>${revision}</version>
             </dependency>
             <dependency>
                 <groupId>io.github.yggdrasil-labs</groupId>
-                <artifactId>app</artifactId>
+                <artifactId>mealmate-app</artifactId>
                 <version>${revision}</version>
             </dependency>
             <dependency>
                 <groupId>io.github.yggdrasil-labs</groupId>
-                <artifactId>domain</artifactId>
+                <artifactId>mealmate-domain</artifactId>
                 <version>${revision}</version>
             </dependency>
             <dependency>
                 <groupId>io.github.yggdrasil-labs</groupId>
-                <artifactId>infrastructure</artifactId>
+                <artifactId>mealmate-infrastructure</artifactId>
                 <version>${revision}</version>
             </dependency>
             <!--Project modules End-->

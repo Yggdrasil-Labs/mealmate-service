@@ -89,12 +89,12 @@ RUN mkdir -p /root/.m2 && \
 
 # 复制 pom 文件（利用 Docker 缓存层）
 COPY pom.xml .
-COPY start/pom.xml start/
-COPY client/pom.xml client/
-COPY adapter/pom.xml adapter/
-COPY app/pom.xml app/
-COPY domain/pom.xml domain/
-COPY infrastructure/pom.xml infrastructure/
+COPY mealmate-start/pom.xml mealmate-start/
+COPY mealmate-client/pom.xml mealmate-client/
+COPY mealmate-adapter/pom.xml mealmate-adapter/
+COPY mealmate-app/pom.xml mealmate-app/
+COPY mealmate-domain/pom.xml mealmate-domain/
+COPY mealmate-infrastructure/pom.xml mealmate-infrastructure/
 
 # 下载依赖（使用 BuildKit 缓存挂载，加速后续构建）
 RUN --mount=type=cache,target=/root/.m2/repository \
@@ -130,7 +130,7 @@ RUN apt-get update && \
 WORKDIR /app
 
 # 从构建阶段复制 JAR 文件（排除 original-*.jar，只复制 Spring Boot 打包的 fat JAR）
-COPY --from=builder /build/start/target/start-*.jar app.jar
+COPY --from=builder /build/mealmate-start/target/mealmate-start-*.jar app.jar
 
 # 设置文件权限
 RUN chown -R app:app /app

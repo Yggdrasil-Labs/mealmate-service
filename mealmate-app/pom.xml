@@ -8,15 +8,15 @@
         <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <artifactId>app</artifactId>
+    <artifactId>mealmate-app</artifactId>
     <packaging>jar</packaging>
-    <name>app</name>
+    <name>mealmate-app</name>
 
     <dependencies>
         <!-- 应用层只依赖领域层（domain），不依赖 client 契约 -->
         <dependency>
             <groupId>io.github.yggdrasil-labs</groupId>
-            <artifactId>domain</artifactId>
+            <artifactId>mealmate-domain</artifactId>
         </dependency>
 
         <!-- DTO/DO 转换 -->

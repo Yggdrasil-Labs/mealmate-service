@@ -19,12 +19,12 @@
 
 根 `pom.xml` 当前维护以下模块：
 
-- `client`：外部契约层，可选
-- `adapter`：协议适配层
-- `app`：应用层
-- `domain`：领域层
-- `infrastructure`：基础设施层
-- `start`：启动层
+- `mealmate-client`：外部契约层，可选
+- `mealmate-adapter`：协议适配层
+- `mealmate-app`：应用层
+- `mealmate-domain`：领域层
+- `mealmate-infrastructure`：基础设施层
+- `mealmate-start`：启动层
 
 ### 1.3 本地环境事实
 
@@ -288,7 +288,7 @@ Agent 在本仓库工作时，必须优先服从以下原则：
 ### 9.2 常用命令
 
 - 全量编译：`./mvnw clean verify`
-- 快速启动：`./mvnw spring-boot:run -pl start -am`
+- 快速启动：`./mvnw spring-boot:run -pl mealmate-start -am`
 - 指定 profile：`./mvnw -Pdev clean verify`
 
 ### 9.3 Agent 约束
