@@ -5,7 +5,7 @@
 
 set -e
 
-TAG="${1:-yggdrasil-labs/midgard-backend-template:latest}"
+TAG="${1:-yggdrasil-labs/mealmate-service:latest}"
 
 # 检查认证信息
 if [ -z "$GITHUB_ACTOR" ] || [ -z "$GITHUB_TOKEN" ]; then

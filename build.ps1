@@ -3,7 +3,7 @@
 # ============================================
 
 param(
-    [string]$Tag = "yggdrasil-labs/midgard-backend-template:latest",
+    [string]$Tag = "yggdrasil-labs/mealmate-service:latest",
     [switch]$NoCache
 )
 

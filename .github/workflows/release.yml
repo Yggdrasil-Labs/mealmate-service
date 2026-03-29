@@ -267,7 +267,7 @@ jobs:
           echo "   docker pull ${{ steps.image.outputs.image }}:${{ needs.prepare.outputs.version }}"
           echo ""
           echo "▶️  运行命令:"
-          echo "   docker run -d --name midgard-backend \\"
+          echo "   docker run -d --name mealmate-service \\"
           echo "     -p 8081:8081 -p 20880:20880 \\"
           echo "     -e SPRING_PROFILES_ACTIVE=dev \\"
           echo "     ghcr.io/${{ github.repository }}:${{ needs.prepare.outputs.version }}"

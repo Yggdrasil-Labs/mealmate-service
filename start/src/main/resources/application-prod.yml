@@ -1,6 +1,6 @@
 logging:
   level:
-    io.yggdrasil.labs.midgard.*: warn
+    io.yggdrasil.labs.mealmate.*: warn
     root: warn
 
 # 生产环境特定配置

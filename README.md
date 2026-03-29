@@ -1,10 +1,10 @@
-# midgard-backend-template
+# mealmate-service
 
-> 中庭 - 基于 COLA 5.0 的 DDD 架构模板项目
+> MealMate（餐伴）业务后端 — 基于 COLA 5.0 的 DDD 分层服务
 
 ## 项目简介
 
-Midgard（中庭）是基于 COLA 5.0 DDD 架构的微服务模板项目，用于快速创建符合 DDD 最佳实践的后端服务。
+**mealmate-service** 是 MealMate（餐伴）业务的后端服务工程，采用 COLA 5.0 DDD 分层架构，Java 包根路径为 `io.yggdrasil.labs.mealmate`。
 
 ## 技术栈
 
@@ -244,23 +244,11 @@ public class CustomerDO { }
 - 各包的 `package-info.java` 包含详细架构说明和代码示例
 - `openspec/` 目录包含项目规范和设计文档
 
-## 使用模板
+## 本地运行
 
 ```bash
-# 1. 克隆项目
-git clone <template-repo-url>
-
-# 2. 修改包名
-# 全局替换：io.yggdrasil.labs.midgard → io.your.company.yourservice
-
-# 3. 修改项目名
-# pom.xml: midgard-backend-template → your-service-name
-
-# 4. 配置环境
-# start/src/main/resources/application.yml
-
-# 5. 启动项目
-./mvnw spring-boot:run
+# 配置数据源等：start/src/main/resources/application-*.yml
+./mvnw spring-boot:run -pl start -am
 ```
 
 ## 相关资源

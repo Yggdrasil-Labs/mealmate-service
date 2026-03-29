@@ -1,5 +1,5 @@
 spring:
   application:
-    name: midgard-backend-template
+    name: mealmate-service
   profiles:
     active: local

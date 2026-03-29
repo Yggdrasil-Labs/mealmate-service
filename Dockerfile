@@ -118,7 +118,7 @@ RUN --mount=type=cache,target=/root/.m2/repository \
 FROM eclipse-temurin:17-jre
 
 LABEL maintainer="YoungerYang-Y"
-LABEL description="Midgard Backend Template"
+LABEL description="MealMate mealmate-service"
 
 # 安装运行时依赖，并创建非 root 用户
 RUN apt-get update && \

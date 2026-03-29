@@ -9,10 +9,10 @@
         <relativePath/>
     </parent>
 
-    <artifactId>midgard-backend-template</artifactId>
+    <artifactId>mealmate-service</artifactId>
     <version>${revision}</version>
     <packaging>pom</packaging>
-    <name>midgard-backend-template</name>
+    <name>mealmate-service</name>
 
     <properties>
         <!-- 📌 版本号统一管理：只修改这里即可，所有子模块自动继承 -->
