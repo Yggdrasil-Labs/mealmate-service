@@ -1,272 +1,160 @@
-# mealmate-service
+# MealMate Service
 
-> MealMate（餐伴）业务后端 — 基于 COLA 5.0 的 DDD 分层服务
+MealMate（餐伴）业务后端服务，面向家庭饮食规划场景，支持从家庭画像、菜品管理、周计划生成，到备菜采购、实际记录和营养复盘的完整业务闭环。
 
-## 项目简介
+## Why MealMate
 
-**mealmate-service** 是 MealMate（餐伴）业务的后端服务工程，采用 COLA 5.0 DDD 分层架构，Java 包根路径为 `io.yggdrasil.labs.mealmate`。
+MealMate 要解决的不是“菜谱太少”，而是家庭日常做饭这件事里更真实的问题：
 
-## 技术栈
+- 家庭成员饮食偏好不同，宝宝、成人、减脂人群的约束不一样。
+- 每周都要重复做“吃什么、买什么、怎么备菜”的决策。
+- 计划和实际经常偏离，缺少可追溯的记录与复盘依据。
+- 后续想做营养分析、提醒推送、AI 辅助时，需要稳定的业务模型支撑。
 
-- **基础框架**: Spring Boot 3.3.13 + Java 17
-- **架构模式**: COLA 5.0 DDD 分层架构
-- **服务注册**: Nacos 2.x
-- **服务通信**: OpenFeign（对外）+ Dubbo 3.x（内部）
-- **数据库**: MySQL 8.4 + MyBatis-Plus（使用 @AutoMybatis 自动生成 Mapper）
-- **对象转换**: MapStruct
-- **缓存**: Redis
-- **消息队列**: Kafka / RocketMQ（可选）
+因此，这个仓库聚焦的是“家庭饮食规划与执行”后端能力，而不是单纯的菜谱展示系统。
 
-## 架构设计
+## Core Features
 
-### 分层架构
+当前业务设计围绕以下能力展开：
 
-```
-┌─────────────────────────────────────────┐
-│  Start（启动层）                         │  ← 启动 + 配置
-├─────────────────────────────────────────┤
-│  Adapter（适配层）                       │  ← 协议适配（HTTP、RPC、MQ）
-├─────────────────────────────────────────┤
-│  Client（客户端层）                      │  ← 对外契约
-├─────────────────────────────────────────┤
-│  App（应用层）                           │  ← 业务编排
-├─────────────────────────────────────────┤
-│  Domain（领域层）                        │  ← 业务规则
-├─────────────────────────────────────────┤
-│  Infrastructure（基础设施层）            │  ← 技术实现
-└─────────────────────────────────────────┘
-```
+- 家庭画像管理：维护家庭成员、口味偏好、忌口、饮食目标和权限边界。
+- 菜品中心：维护菜品、食材、标签、适配人群、营养信息和做法说明。
+- 周计划生成：基于家庭画像、菜品库和规则生成一周三餐安排。
+- 备菜与采购：从周计划派生采购清单、备菜任务和保存说明。
+- 实际饮食记录：记录真实用餐照片、备注，并关联计划餐次。
+- 营养分析与复盘：对计划与实际进行对比，输出营养评估和优化建议。
+- 提醒与推送：支持备菜提醒、采购提醒和固定时点消息任务。
 
-### 核心原则
+## Scope
 
-| 层 | 职责 | 依赖 | 原则 |
-|---|------|------|------|
-| **Client** | 外部协议契约（Dubbo/Feign 接口与协议专属 DTO） | COLA 基础类 | 只定义不实现，独立于内部层 |
-| **Adapter** | 协议适配（HTTP/RPC/MQ 等） | App | 薄适配层，不含业务逻辑 |
-| **App** | 业务编排（AppService + CQRS 执行器） | Domain | 暴露 AppService，委派执行器，不放规则 |
-| **Domain** | 业务规则（Entity、Repository 接口） | 无 | 规则中心，不依赖外部框架 |
-| **Infrastructure** | 技术实现（DO、Repository 实现） | Domain | 实现 Domain 接口（依赖倒置） |
-| **Start** | 启动配置 | 所有层 | 只做启动 + 配置 |
+当前仓库主要承载 MealMate 的后端业务能力与工程骨架，重点覆盖：
 
-### 依赖关系
+- 家庭画像、菜品、周计划、备菜采购、饮食记录、营养分析等核心链路。
+- 基于 COLA 5.0 的领域建模和应用编排。
+- 面向 Web 端的接口支撑，并为 App、AI、微前端和 RPC 契约预留扩展能力。
 
-```mermaid
-flowchart TD
-    Start[Start 启动层] -->|依赖| Adapter[Adapter 适配层]
-    Start -->|依赖| App[App 应用层]
-    Start -->|依赖| Infrastructure[Infrastructure 基础设施层]
-    Start -->|依赖| Domain[Domain 领域层]
-    
-    Adapter -->|依赖| App[App 应用层]
-    App -->|依赖| Domain
-    Infrastructure -->|依赖| Domain
-    Client[Client 外部契约层]:::optional
+当前阶段不直接交付的内容包括：
 
-    classDef optional fill:#e3f2fd,stroke:#90a4ae,stroke-dasharray: 5 5;
-    style Domain fill:#e8f5e9
-```
+- App 原生相机能力，例如闪光灯控制、自动对焦调节。
+- 完整的微前端主应用集成，仅保留接入预留。
+- 由 AI 直接替代领域规则的决策链路。
 
-## 项目结构
+## Business Context
 
-### 各层子包说明
+MealMate 的核心业务闭环可以概括为：
 
-#### Client 层（`mealmate-client`，外部协议契约，可选）
+1. 建立家庭成员画像与饮食约束。
+2. 管理标准化菜品知识库。
+3. 生成一周用餐计划。
+4. 派生采购清单与备菜计划。
+5. 记录实际饮食情况。
+6. 对比计划与实际，生成营养分析和后续优化建议。
 
-| 子包 | 用途 | 命名规范 |
-|-----|------|---------|
-| `api` | 对外协议接口（如 Dubbo/Feign） | `{Domain}Client` |
-| `dto/*` | 协议专属 DTO（DubboRequest/FeignRequest 等） | 依协议命名 |
+围绕这条主链路，仓库当前重点关注以下领域：
 
-**注意**：内部编排 DTO 不放在 Client。
+- `Family`：家庭成员、偏好、忌口、权限和画像配置。
+- `Recipe`：菜品、配方、标签、营养信息和适配人群。
+- `MealPlan`：周计划、餐次安排、生成规则和重复校验。
+- `Preparation`：采购清单、备菜计划和保存方式。
+- `Record`：照片记录、备注、计划关联和差异比对。
+- `Nutrition`：营养报告、达标校验和建议输出。
+- `Notification`：提醒配置、定时任务和消息投递。
 
-#### Adapter 层（`mealmate-adapter`）
+更详细的业务文档见：
 
-| 子包 | 用途 | 命名规范 |
-|-----|------|---------|
-| `web/customer` | Customer 领域 REST 控制器 | `{Domain}Controller` |
-| `web/customer/dto` | Web 请求对象 | `{Verb}{Domain}Request` |
-| `web/customer/convertor` | 请求转换器 | `{Domain}WebConvertor` |
-| `rpc/provider` | RPC 服务提供者 | `{Domain}RpcProvider` |
-| `mq/consumer` | MQ 消息消费者 | `{Domain}MqConsumer` |
+- [业务与领域上下文](/home/yangyang/workspace/codes/Yggdrasil-Labs/mealmate-service/docs/business/业务与领域上下文.md)
+- [范围与实施约束](/home/yangyang/workspace/codes/Yggdrasil-Labs/mealmate-service/docs/business/范围与实施约束.md)
 
-#### App 层（`mealmate-app`）
+## Tech Stack
 
-| 子包 | 用途 | 命名规范 |
-|-----|------|---------|
-| `{aggregate}` | 聚合根业务包 | 小写聚合名（如 `customer`） |
-| `dto/cmd` | 命令对象（写） | `{Verb}{Domain}Cmd` |
-| `dto/qry` | 查询对象（读） | `{Verb}{Domain}Qry` |
-| `dto/co` | 客户对象（输出） | `{Domain}CO` |
-| `dto/enums` | 业务枚举 | `{Name}Enum`、`ErrorCode` |
-| `application` | AppService 接口/实现 | `{Domain}AppService` / `...Impl` |
-| `executor` | 命令/查询执行器 | `{Domain}{Action}CmdExe`、`{Domain}{Action}QryExe` |
-| `convertor` | Cmd→Entity 转换器 | `{Domain}Convertor` |
-| `assembler` | Entity→CO 组装器 | `{Domain}Assembler` |
-| `listener` | 事件监听器 | `{Domain}EventListener` |
+- Java 17
+- Spring Boot 3.3.x
+- Maven Wrapper
+- COLA 5.0 DDD
+- MyBatis-Plus
+- MapStruct
+- Jakarta Validation
+- Redis
+- MySQL
 
-#### Domain 层（`mealmate-domain`）
+技术架构是实现手段，不是 README 首页重点。如果需要了解模块分层、依赖方向和编码约束，请查看下方文档导航。
 
-| 子包 | 用途 | 命名规范 |
-|-----|------|---------|
-| `{aggregate}/model` | 领域模型 | `{Domain}`（Entity）、`{Name}`（VO） |
-| `{aggregate}/service` | 领域服务 | `{Domain}DomainService` |
-| `{aggregate}/repository` | 仓储接口 | `{Domain}Repository` |
-| `{aggregate}/event` | 领域事件 | `{Domain}{Action}Event`（过去时） |
+## Project Structure
 
-#### Infrastructure 层（`mealmate-infrastructure`）
-
-| 子包 | 用途 | 命名规范 |
-|-----|------|---------|
-| `persistence/dataobject` | 数据库对象 | `{Domain}DO` + `@AutoMybatis` |
-| `persistence/convertor` | DO↔Entity 转换器 | `{Domain}Convertor` |
-| `persistence/impl` | Repository 实现 | `{Domain}RepositoryImpl` |
-| `gateway` | 第三方服务调用 | `{External}GatewayImpl` |
-| `config` | 技术配置 | `{Tech}Config` |
-
-## 对象转换链路
-
-```mermaid
-flowchart LR
-    A[HTTP Request<br/>JSON] -->|Jackson| B[Request DTO]
-    B -->|WebConvertor| C[App Command/Query]
-    C -->|Convertor| D[Entity]
-    D -->|Convertor| E[DO]
-    E -->|MyBatis-Plus| F[(Database)]
-    
-    F -->|MyBatis-Plus| E
-    E -->|Convertor| D
-    D -->|Assembler| G[CO]
-    G -->|Jackson| H[HTTP Response<br/>JSON]
-    
-    style A fill:#e3f2fd
-    style H fill:#e3f2fd
-    style D fill:#fff9c4
-    style E fill:#f3e5f5
-    style F fill:#e8f5e9
+```text
+mealmate-service
+├── mealmate-client
+├── mealmate-adapter
+├── mealmate-app
+├── mealmate-domain
+├── mealmate-infrastructure
+└── mealmate-start
 ```
 
-### 转换器职责
+## Quick Start
 
-| 层 | 转换器 | 方向 | 工具 |
-|---|--------|------|------|
-| Adapter | `{Domain}WebConvertor` | Request → App Cmd | MapStruct |
-| App | `{Domain}Convertor` | Cmd → Entity | MapStruct |
-| App | `{Domain}Assembler` | Entity → CO | MapStruct |
-| Infrastructure | `{Domain}Convertor` | Entity ↔ DO | MapStruct |
+### Requirements
 
-### 参数校验
+- JDK 17
+- Maven Wrapper（优先使用 `./mvnw`）
+- MySQL 8.x
+- Redis
 
-1. **App 层 DTO**：使用 JSR 303 注解（`@NotBlank`、`@Size`、`@Pattern`）
-2. **Adapter 层**：使用 `@Validated` + `@Valid` 启用校验
-3. **Domain 层**：在 Entity 的 `validate()` 方法中校验业务规则
-
-## 快速开始
-
-### 开发流程
+WSL 环境如需使用 Node，请先执行：
 
 ```bash
-# 1. App 层 - 定义编排入口与内部 DTO
-├── CustomerAppService / CustomerAppServiceImpl
-├── dto/cmd/CreateCustomerCmd（带校验注解）
-├── dto/qry/ListCustomerQry
-├── dto/co/CustomerCO
-├── executor/CustomerCreateCmdExe（@Transactional）
-└── executor/CustomerListQryExe
-
-# 2. Domain 层 - 定义模型
-├── Customer Entity（含 validate() 方法）
-└── CustomerRepository 接口
-
-# 3. Infrastructure 层 - 技术实现
-├── CustomerDO（@AutoMybatis 自动生成 Mapper）
-├── CustomerInfraConvertor（DO ↔ Entity）
-└── CustomerRepositoryImpl
-
-# 4. Adapter 层 - 协议适配
-├── CreateCustomerRequest
-├── CustomerWebConvertor（Request → App Cmd）
-└── CustomerController（@Validated，注入 CustomerAppService）
-
-# 5. Client 层（可选）- 对外协议契约
-└── Dubbo/Feign 接口与协议专属 DTO
+source ~/.nvm/nvm.sh
 ```
 
-## 常见问题
+### Run Locally
 
-<details>
-<summary><b>Q1: 为什么没有 Mapper 接口文件？</b></summary>
-
-使用 `@AutoMybatis` 注解在编译期自动生成 Mapper 和 Service：
-
-```java
-@TableName("customer")
-@AutoMybatis  // 自动生成 CustomerMapper 和 CustomerService
-public class CustomerDO { }
-```
-</details>
-
-<details>
-<summary><b>Q2: Entity 与 DO 的区别？</b></summary>
-
-- **Entity（领域实体）**：包含业务逻辑和行为方法
-- **DO（数据对象）**：只包含数据字段，对应数据库表
-
-通过 Convertor 转换，保持两者独立。
-</details>
-
-<details>
-<summary><b>Q3: Convertor 与 Assembler 的区别？</b></summary>
-
-- **Convertor**：Cmd → Entity（写入方向）
-- **Assembler**：Entity → CO（读取方向）
-</details>
-
-<details>
-<summary><b>Q4: 如何调用第三方服务？</b></summary>
-
-使用 Gateway 模式：
-1. Domain 层定义 Gateway 接口（如 `PaymentGateway`）
-2. Infrastructure 层实现接口（如 `PaymentGatewayImpl`）
-</details>
-
-## 最佳实践
-
-### ✅ 关键原则
-
-- **依赖倒置**：Domain 定义接口，Infrastructure 实现
-- **单一职责**：各层职责清晰，避免越界
-- **事务边界**：在 App 层 Executor 上使用 `@Transactional`
-- **参数校验**：Adapter 层 Request DTO 校验 + Domain 层业务规则
-- **异常处理**：技术异常转换为领域异常
-
-### 📚 详细文档
-
-- 各包的 `package-info.java` 包含详细架构说明和代码示例
-- `openspec/` 目录包含项目规范和设计文档
-
-## 本地运行
+1. 配置 `mealmate-start/src/main/resources/application-*.yml` 中的数据源、Redis 和相关环境参数。
+2. 启动服务：
 
 ```bash
-# 配置数据源等：mealmate-start/src/main/resources/application-*.yml
 ./mvnw spring-boot:run -pl mealmate-start -am
 ```
 
-## 相关资源
+### Common Commands
 
-- [COLA 架构](https://github.com/alibaba/COLA)
-- [阿里巴巴 Java 开发手册](https://github.com/alibaba/p3c)
-- [MapStruct 文档](https://mapstruct.org/)
-- [MyBatis-Plus 文档](https://baomidou.com/)
+```bash
+# 全量校验
+./mvnw clean verify
 
-## 贡献指南
+# 快速启动
+./mvnw spring-boot:run -pl mealmate-start -am
 
-遵循 [Conventional Commits](https://www.conventionalcommits.org/) 规范：
-
-```
-feat: 新增功能
-fix: 修复 Bug
-docs: 文档更新
-refactor: 代码重构
+# 指定 profile
+./mvnw -Pdev clean verify
 ```
 
-详细的自动化发布流程说明请参考 [工作流文档](.github/Workflow.md)。
+## Documentation
+
+- [业务与领域上下文](/home/yangyang/workspace/codes/Yggdrasil-Labs/mealmate-service/docs/business/业务与领域上下文.md)
+- [范围与实施约束](/home/yangyang/workspace/codes/Yggdrasil-Labs/mealmate-service/docs/business/范围与实施约束.md)
+
+如果你要了解更细的工程规范、分层边界和提交约束，可以继续阅读：
+
+- `AGENTS.md`
+- 各模块下的 `package-info.java`
+
+## Development Notes
+
+- 这是一个明确的 COLA 5.0 DDD 项目，业务规则应优先沉淀在 `domain`。
+- `adapter` 只做协议适配，`app` 做业务编排，`infrastructure` 做技术实现。
+- 基础设施层转换器请使用 `InfraConvertor` 后缀，避免与应用层 `Convertor` 重名。
+- 默认在当前分支开发，除非明确要求，不主动创建 Worktree、提交或推送代码。
+- 提交信息遵循 Conventional Commits。
+
+## Roadmap
+
+- 完成核心后端骨架与数据库落库。
+- 打通菜品、周计划、备菜、记录主链路。
+- 增加营养分析、提醒推送和历史复盘能力。
+- 为 AI、App 和跨服务契约扩展保留稳定边界。
+
+## Related Links
+
+- [COLA](https://github.com/alibaba/COLA)
+- [MapStruct](https://mapstruct.org/)
+- [MyBatis-Plus](https://baomidou.com/)
