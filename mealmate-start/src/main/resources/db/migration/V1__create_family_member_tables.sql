@@ -1,0 +1,61 @@
+CREATE TABLE IF NOT EXISTS `family_profile` (
+  `id` BIGINT NOT NULL COMMENT '主键',
+  `family_name` VARCHAR(128) NOT NULL COMMENT '家庭名称',
+  `family_code` VARCHAR(64) NOT NULL COMMENT '家庭唯一编码',
+  `status` VARCHAR(32) NOT NULL COMMENT '家庭状态',
+  `region` VARCHAR(64) NULL COMMENT '默认地区',
+  `meal_goal_json` JSON NULL COMMENT '饮食目标 JSON',
+  `remark` VARCHAR(512) NULL COMMENT '备注',
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `created_by` VARCHAR(64) NULL COMMENT '创建人',
+  `updated_by` VARCHAR(64) NULL COMMENT '更新人',
+  `deleted` TINYINT(1) NOT NULL DEFAULT 0 COMMENT '逻辑删除标记',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_family_profile_family_code` (`family_code`),
+  KEY `idx_family_profile_status_deleted` (`status`, `deleted`)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '家庭画像';
+
+CREATE TABLE IF NOT EXISTS `family_member` (
+  `id` BIGINT NOT NULL COMMENT '主键',
+  `family_id` BIGINT NOT NULL COMMENT '家庭 ID',
+  `name` VARCHAR(64) NOT NULL COMMENT '成员姓名',
+  `role_type` VARCHAR(32) NOT NULL COMMENT '成员角色类型',
+  `gender` VARCHAR(32) NULL COMMENT '性别类型',
+  `birthday` DATE NULL COMMENT '生日',
+  `region` VARCHAR(64) NULL COMMENT '成员地区',
+  `target_type` VARCHAR(32) NULL COMMENT '饮食目标类型',
+  `avatar_url` VARCHAR(512) NULL COMMENT '头像地址',
+  `sort_no` INT NOT NULL DEFAULT 0 COMMENT '排序号',
+  `status` VARCHAR(32) NOT NULL COMMENT '成员状态',
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `created_by` VARCHAR(64) NULL COMMENT '创建人',
+  `updated_by` VARCHAR(64) NULL COMMENT '更新人',
+  `deleted` TINYINT(1) NOT NULL DEFAULT 0 COMMENT '逻辑删除标记',
+  PRIMARY KEY (`id`),
+  KEY `idx_family_member_family_id_deleted` (`family_id`, `deleted`),
+  KEY `idx_family_member_family_id_status_deleted` (`family_id`, `status`, `deleted`),
+  KEY `idx_family_member_family_id_role_type_deleted` (`family_id`, `role_type`, `deleted`)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '家庭成员';
+
+CREATE TABLE IF NOT EXISTS `member_preference` (
+  `id` BIGINT NOT NULL COMMENT '主键',
+  `member_id` BIGINT NOT NULL COMMENT '成员 ID',
+  `taste_tags` VARCHAR(512) NULL COMMENT '口味标签（逗号分隔）',
+  `avoid_ingredients` VARCHAR(1024) NULL COMMENT '忌口食材（逗号分隔）',
+  `allergy_ingredients` VARCHAR(1024) NULL COMMENT '过敏食材（逗号分隔）',
+  `spicy_level` VARCHAR(32) NULL COMMENT '辣度等级',
+  `sweet_level` VARCHAR(32) NULL COMMENT '甜度等级',
+  `oil_level` VARCHAR(32) NULL COMMENT '油量等级',
+  `salt_level` VARCHAR(32) NULL COMMENT '盐度等级',
+  `nutrition_goal_json` JSON NULL COMMENT '营养目标 JSON',
+  `extra_rule_json` JSON NULL COMMENT '额外规则 JSON',
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `created_by` VARCHAR(64) NULL COMMENT '创建人',
+  `updated_by` VARCHAR(64) NULL COMMENT '更新人',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_member_preference_member_id` (`member_id`),
+  KEY `idx_member_preference_member_id` (`member_id`)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '成员偏好';
