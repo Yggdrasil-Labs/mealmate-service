@@ -10,5 +10,11 @@ logging:
     io.yggdrasil.labs.mealmate.*: debug
     root: info
 
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+
 # 开发环境特定配置
 # 例如：数据库连接、Redis 等

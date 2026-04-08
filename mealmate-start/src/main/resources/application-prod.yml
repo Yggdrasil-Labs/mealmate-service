@@ -3,5 +3,11 @@ logging:
     io.yggdrasil.labs.mealmate.*: warn
     root: warn
 
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+
 # 生产环境特定配置
 # 例如：数据库连接、Redis、监控等

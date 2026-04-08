@@ -1,6 +1,6 @@
 package io.yggdrasil.labs.mealmate.start;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,9 +36,33 @@ class FlywayMigrationSmokeTest {
                         "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME ="
                                 + " 'member_preference'",
                         Integer.class);
+        Integer familyProfileDataCount =
+                jdbcTemplate.queryForObject("SELECT COUNT(*) FROM family_profile", Integer.class);
+        Integer familyMemberDataCount =
+                jdbcTemplate.queryForObject("SELECT COUNT(*) FROM family_member", Integer.class);
+        String familyProfileIdIdentity =
+                jdbcTemplate.queryForObject(
+                        "SELECT IS_IDENTITY FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME ="
+                                + " 'family_profile' AND COLUMN_NAME = 'id'",
+                        String.class);
+        String familyMemberIdIdentity =
+                jdbcTemplate.queryForObject(
+                        "SELECT IS_IDENTITY FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME ="
+                                + " 'family_member' AND COLUMN_NAME = 'id'",
+                        String.class);
+        String memberPreferenceIdIdentity =
+                jdbcTemplate.queryForObject(
+                        "SELECT IS_IDENTITY FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME ="
+                                + " 'member_preference' AND COLUMN_NAME = 'id'",
+                        String.class);
 
-        assertThat(familyProfileCount).isEqualTo(1);
-        assertThat(familyMemberCount).isEqualTo(1);
-        assertThat(memberPreferenceCount).isEqualTo(1);
+        assertEquals(1, familyProfileCount);
+        assertEquals(1, familyMemberCount);
+        assertEquals(1, memberPreferenceCount);
+        assertEquals(1, familyProfileDataCount);
+        assertEquals(3, familyMemberDataCount);
+        assertEquals("YES", familyProfileIdIdentity);
+        assertEquals("YES", familyMemberIdIdentity);
+        assertEquals("YES", memberPreferenceIdIdentity);
     }
 }

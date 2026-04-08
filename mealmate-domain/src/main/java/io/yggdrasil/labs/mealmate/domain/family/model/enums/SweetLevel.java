@@ -5,10 +5,10 @@ import lombok.Getter;
 /** 甜度偏好等级。 */
 @Getter
 public enum SweetLevel {
-    NONE("NONE"),
-    LIGHT("LIGHT"),
-    MODERATE("MODERATE"),
-    SWEET("SWEET");
+    NONE("NONE"), // 无糖/不甜
+    LIGHT("LIGHT"), // 微甜
+    MODERATE("MODERATE"), // 适中
+    SWEET("SWEET"); // 偏甜
 
     private final String code;
 

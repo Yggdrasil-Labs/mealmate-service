@@ -20,7 +20,7 @@ import lombok.Data;
 @AutoMybatis
 public class MemberPreferenceDO {
 
-    @TableId(value = "id", type = IdType.ASSIGN_ID)
+    @TableId(value = "id", type = IdType.AUTO)
     private Long id;
 
     @TableField("member_id")

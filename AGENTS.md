@@ -297,6 +297,25 @@ Agent 在本仓库工作时，必须优先服从以下原则：
 - 若修改了公共契约、编译配置、POM、发布脚本，优先做全量编译校验
 - 未经明确需要，不擅自改动发布工作流与版本脚本
 
+### 9.4 正确执行指定单元测试
+
+在 Maven 多模块工程中，执行“某一个测试类”时，必须区分“只跑当前模块”与“需要同时构建上游依赖模块”两种场景。
+
+- 若目标模块及其依赖模块已经在当前 reactor 中可解析，可直接执行：
+  `./mvnw -q -pl mealmate-domain test -Dtest=FamilyDomainServiceTest`
+- 若目标模块依赖同仓库其他子模块，且这些子模块未先安装到本地仓库，优先执行：
+  `./mvnw -q test -pl mealmate-infrastructure -am -Dtest=MemberPreferenceInfraConvertorTest -Dsurefire.failIfNoSpecifiedTests=false`
+- 对 `mealmate-start` 这类依赖聚合更深的模块，执行指定测试时同样遵循上面的写法，例如：
+  `./mvnw -q test -pl mealmate-start -am -Dtest=FlywayMigrationSmokeTest -Dsurefire.failIfNoSpecifiedTests=false`
+
+必须注意：
+
+- `-pl <module> -am` 会让 Maven 一并构建上游依赖模块。
+- 当同时使用 `-am` 与 `-Dtest=某个测试类` 时，上游模块通常并不存在同名测试；此时如果不加 `-Dsurefire.failIfNoSpecifiedTests=false`，Maven 会因为“没有匹配到测试”而失败。
+- 这种失败通常是命令写法问题，不代表业务代码或测试代码本身存在缺陷。
+- 因此，凡是“指定某个测试类”且命令里带 `-am` 的场景，默认一并加上 `-Dsurefire.failIfNoSpecifiedTests=false`，除非已经确认整个 reactor 中每个参与模块都存在同名测试。
+- 若只是验证单个模块内的纯领域测试，且不需要联动构建上游模块，可不加 `-am`，保持命令最小化。
+
 ## 10. Conventional Commits
 
 本仓库的发布流水线依赖 Conventional Commits 与 Release Please，提交信息不是“参考建议”，而是自动发布输入。

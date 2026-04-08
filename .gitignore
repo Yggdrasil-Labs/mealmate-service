@@ -32,6 +32,7 @@ doc/
 
 ### Logs ###
 /logs/
+*.log
 
 ### VS Code ###
 .vscode/

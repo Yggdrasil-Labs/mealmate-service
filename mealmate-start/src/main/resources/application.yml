@@ -3,3 +3,9 @@ spring:
     name: mealmate-service
   profiles:
     active: local
+
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
