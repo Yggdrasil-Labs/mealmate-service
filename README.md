@@ -62,8 +62,8 @@ MealMate 的核心业务闭环可以概括为：
 
 更详细的业务文档见：
 
-- [业务与领域上下文](/home/yangyang/workspace/codes/Yggdrasil-Labs/mealmate-service/docs/business/业务与领域上下文.md)
-- [范围与实施约束](/home/yangyang/workspace/codes/Yggdrasil-Labs/mealmate-service/docs/business/范围与实施约束.md)
+- [领域上下文](/home/yangyang/workspace/codes/Yggdrasil-Labs/mealmate-service/docs/design-docs/domain-context.md)
+- [交付范围与实施边界](/home/yangyang/workspace/codes/Yggdrasil-Labs/mealmate-service/docs/design-docs/delivery-scope.md)
 
 ## Tech Stack
 
@@ -130,13 +130,18 @@ source ~/.nvm/nvm.sh
 
 ## Documentation
 
-- [业务与领域上下文](/home/yangyang/workspace/codes/Yggdrasil-Labs/mealmate-service/docs/business/业务与领域上下文.md)
-- [范围与实施约束](/home/yangyang/workspace/codes/Yggdrasil-Labs/mealmate-service/docs/business/范围与实施约束.md)
+如果你要快速建立对仓库的完整理解，建议按下面顺序阅读：
 
-如果你要了解更细的工程规范、分层边界和提交约束，可以继续阅读：
+1. [AGENTS.md](/home/yangyang/workspace/codes/Yggdrasil-Labs/mealmate-service/AGENTS.md)
+2. [ARCHITECTURE.md](/home/yangyang/workspace/codes/Yggdrasil-Labs/mealmate-service/ARCHITECTURE.md)
+3. [产品规格索引](/home/yangyang/workspace/codes/Yggdrasil-Labs/mealmate-service/docs/product-specs/index.md)
+4. [设计文档索引](/home/yangyang/workspace/codes/Yggdrasil-Labs/mealmate-service/docs/design-docs/index.md)
+5. [执行计划说明](/home/yangyang/workspace/codes/Yggdrasil-Labs/mealmate-service/docs/PLANS.md)
 
-- `AGENTS.md`
-- 各模块下的 `package-info.java`
+补充阅读：
+
+- [领域上下文](/home/yangyang/workspace/codes/Yggdrasil-Labs/mealmate-service/docs/design-docs/domain-context.md)
+- [交付范围与实施边界](/home/yangyang/workspace/codes/Yggdrasil-Labs/mealmate-service/docs/design-docs/delivery-scope.md)
 
 ## Development Notes
 

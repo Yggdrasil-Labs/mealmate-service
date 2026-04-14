@@ -560,7 +560,7 @@ Only adjust:
 
 ---
 
-Plan complete and saved to `docs/plans/2026-03-31-uc1-family-member-implementation-plan.md`. Two execution options:
+Plan complete and archived at `docs/exec-plans/completed/2026-03-31-uc1-family-member-implementation-plan.md`. Two execution options:
 
 **1. Subagent-Driven (this session)** - I dispatch fresh subagent per task, review between tasks, fast iteration
 

@@ -1,0 +1,8 @@
+MealMate AI 参考摘要：Spring Boot
+
+1. 约定优于配置，但不要让框架注解污染 domain。
+2. `@Transactional` 优先放在 app 层编排入口或执行器。
+3. Controller 负责接收、校验和返回，不承载流程控制。
+4. 配置类属于 start 或 infrastructure，不应偷偷长出业务逻辑。
+5. 技术异常要在边界转换，不把底层实现细节直接抛到上层。
+

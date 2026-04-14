@@ -1,0 +1,8 @@
+MealMate AI 参考摘要：MyBatis-Plus
+
+1. DO 只表达表结构，不承载业务行为。
+2. Entity 与 DO 通过 InfraConvertor 显式转换。
+3. 不要让 Mapper、表字段名或数据库注解泄漏到领域模型。
+4. 若仓库已有 `@AutoMybatis` 能力，优先复用，避免重复样板。
+5. 数据访问优化和查询便利不能成为破坏领域边界的理由。
+
