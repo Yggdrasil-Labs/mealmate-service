@@ -26,7 +26,10 @@ import com.yggdrasil.labs.mybatis.config.MybatisPlusAutoConfiguration;
 
 import io.yggdrasil.labs.mealmate.adapter.web.family.FamilyMemberController;
 import io.yggdrasil.labs.mealmate.adapter.web.family.convertor.FamilyMemberWebConvertor;
+import io.yggdrasil.labs.mealmate.adapter.web.recipe.RecipeController;
+import io.yggdrasil.labs.mealmate.adapter.web.recipe.convertor.RecipeWebConvertor;
 import io.yggdrasil.labs.mealmate.app.family.application.FamilyMemberAppService;
+import io.yggdrasil.labs.mealmate.app.recipe.application.RecipeAppService;
 import io.yggdrasil.labs.mealmate.start.config.OpenApiConfig;
 
 @SpringBootTest(
@@ -48,6 +51,21 @@ class OpenApiDocumentationIntegrationTest {
         assertTrue(body.contains("/api/families/{familyId}/members"));
         assertTrue(body.contains("Family"));
         assertTrue(body.contains("roleType"));
+        assertTrue(body.contains("/api/recipes"));
+        assertTrue(body.contains("/api/recipes/{recipeId}"));
+        assertTrue(body.contains("/api/recipes/search"));
+        assertTrue(body.contains("/api/recipes/{recipeId}/ingredients"));
+        assertTrue(body.contains("/api/recipes/{recipeId}/steps"));
+        assertTrue(body.contains("/api/recipes/{recipeId}/nutrition"));
+        assertTrue(body.contains("keyword"));
+        assertTrue(body.contains("recipeType"));
+        assertTrue(body.contains("seasonTag"));
+        assertTrue(body.contains("crowdTag"));
+        assertTrue(body.contains("isBabyFriendly"));
+        assertTrue(body.contains("isWeightLossFriendly"));
+        assertTrue(body.contains("difficultyLevel"));
+        assertTrue(body.contains("maxCookingTime"));
+        assertTrue(body.contains("limit"));
         assertTrue(body.contains("tasteTags"));
         assertTrue(body.contains("ADULT"));
         assertTrue(body.contains("ACTIVE"));
@@ -61,15 +79,24 @@ class OpenApiDocumentationIntegrationTest {
                 MybatisPlusAutoConfiguration.class,
                 DdlAutoConfiguration.class
             })
-    @Import({
-        OpenApiConfig.class,
-        FamilyMemberController.class,
-        OpenApiDocumentationIntegrationTest.TestBeans.class
-    })
+    @Import({OpenApiConfig.class, OpenApiDocumentationIntegrationTest.TestBeans.class})
     static class TestApplication {}
 
     @TestConfiguration
     static class TestBeans {
+
+        @Bean
+        FamilyMemberController familyMemberController(
+                FamilyMemberAppService familyMemberAppService,
+                FamilyMemberWebConvertor familyMemberWebConvertor) {
+            return new FamilyMemberController(familyMemberAppService, familyMemberWebConvertor);
+        }
+
+        @Bean
+        RecipeController recipeController(
+                RecipeAppService recipeAppService, RecipeWebConvertor recipeWebConvertor) {
+            return new RecipeController(recipeAppService, recipeWebConvertor);
+        }
 
         @Bean
         FamilyMemberAppService familyMemberAppService() {
@@ -79,6 +106,16 @@ class OpenApiDocumentationIntegrationTest {
         @Bean
         FamilyMemberWebConvertor familyMemberWebConvertor() {
             return Mockito.mock(FamilyMemberWebConvertor.class);
+        }
+
+        @Bean
+        RecipeAppService recipeAppService() {
+            return Mockito.mock(RecipeAppService.class);
+        }
+
+        @Bean
+        RecipeWebConvertor recipeWebConvertor() {
+            return Mockito.mock(RecipeWebConvertor.class);
         }
     }
 }
