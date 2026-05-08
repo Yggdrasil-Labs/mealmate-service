@@ -42,6 +42,6 @@ MealMate 的价值建立在“家庭画像足够完整”之上。如果首次�
 
 ## 关联文档
 
-- [领域上下文](/home/yangyang/workspace/codes/Yggdrasil-Labs/mealmate-service/docs/design-docs/domain-context.md)
-- [产品感知](/home/yangyang/workspace/codes/Yggdrasil-Labs/mealmate-service/docs/PRODUCT_SENSE.md)
+- [领域上下文](../design-docs/domain-context.md)
+- [产品感知](../PRODUCT_SENSE.md)
 

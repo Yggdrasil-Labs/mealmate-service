@@ -10,7 +10,7 @@
 - 单次讨论中的候选方案。
 - 未确认的未来设想。
 
-这些内容分别进入 `docs/exec-plans/`、`docs/design-docs/` 与 `docs/product-specs/`。
+这些内容分别进入 `docs/active/{slug}/plan.md`、`docs/design-docs/` 与 `docs/active/{slug}/spec.md`。
 
 ## 1. 系统目标
 
@@ -145,8 +145,8 @@ MealMate 是一个围绕家庭饮食规划与执行闭环构建的后端服务�
 
 更详细的业务定义见：
 
-- [设计文档索引](/home/yangyang/workspace/codes/Yggdrasil-Labs/mealmate-service/docs/design-docs/index.md)
-- [领域上下文](/home/yangyang/workspace/codes/Yggdrasil-Labs/mealmate-service/docs/design-docs/domain-context.md)
+- [设计文档索引](./docs/design-docs/index.md)
+- [领域上下文](./docs/design-docs/domain-context.md)
 
 ## 8. 对象流转
 
@@ -184,8 +184,8 @@ MealMate 是一个围绕家庭饮食规划与执行闭环构建的后端服务�
 
 首次进入仓库时，建议按以下顺序阅读：
 
-1. `AGENTS.md`
-2. `ARCHITECTURE.md`
-3. [产品规格索引](/home/yangyang/workspace/codes/Yggdrasil-Labs/mealmate-service/docs/product-specs/index.md)
-4. [设计文档索引](/home/yangyang/workspace/codes/Yggdrasil-Labs/mealmate-service/docs/design-docs/index.md)
-5. [执行计划说明](/home/yangyang/workspace/codes/Yggdrasil-Labs/mealmate-service/docs/PLANS.md)
+1. [AGENTS.md](./AGENTS.md) - AI 工作协议与导航
+2. [ARCHITECTURE.md](./ARCHITECTURE.md) - 工程事实与技术边界
+3. [产品感知](./docs/PRODUCT_SENSE.md) - 产品目标与取舍原则
+4. [设计文档索引](./docs/design-docs/index.md) - 设计原则与领域上下文
+5. [活跃需求索引](./docs/active/index.md) - 当前需求与技术债

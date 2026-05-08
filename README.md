@@ -62,8 +62,8 @@ MealMate 的核心业务闭环可以概括为：
 
 更详细的业务文档见：
 
-- [领域上下文](/home/yangyang/workspace/codes/Yggdrasil-Labs/mealmate-service/docs/design-docs/domain-context.md)
-- [交付范围与实施边界](/home/yangyang/workspace/codes/Yggdrasil-Labs/mealmate-service/docs/design-docs/delivery-scope.md)
+- [领域上下文](./docs/design-docs/domain-context.md)
+- [交付范围与实施边界](./docs/design-docs/delivery-scope.md)
 
 ## Tech Stack
 
@@ -132,16 +132,17 @@ source ~/.nvm/nvm.sh
 
 如果你要快速建立对仓库的完整理解，建议按下面顺序阅读：
 
-1. [AGENTS.md](/home/yangyang/workspace/codes/Yggdrasil-Labs/mealmate-service/AGENTS.md)
-2. [ARCHITECTURE.md](/home/yangyang/workspace/codes/Yggdrasil-Labs/mealmate-service/ARCHITECTURE.md)
-3. [产品规格索引](/home/yangyang/workspace/codes/Yggdrasil-Labs/mealmate-service/docs/product-specs/index.md)
-4. [设计文档索引](/home/yangyang/workspace/codes/Yggdrasil-Labs/mealmate-service/docs/design-docs/index.md)
-5. [执行计划说明](/home/yangyang/workspace/codes/Yggdrasil-Labs/mealmate-service/docs/PLANS.md)
+1. [AGENTS.md](./AGENTS.md) - AI 工作协议与导航
+2. [ARCHITECTURE.md](./ARCHITECTURE.md) - 工程事实与技术边界
+3. [产品感知](./docs/PRODUCT_SENSE.md) - 产品目标与取舍原则
+4. [设计文档索引](./docs/design-docs/index.md) - 设计原则与领域上下文
+5. [活跃需求索引](./docs/active/index.md) - 当前需求与技术债
 
 补充阅读：
 
-- [领域上下文](/home/yangyang/workspace/codes/Yggdrasil-Labs/mealmate-service/docs/design-docs/domain-context.md)
-- [交付范围与实施边界](/home/yangyang/workspace/codes/Yggdrasil-Labs/mealmate-service/docs/design-docs/delivery-scope.md)
+- [领域上下文](./docs/design-docs/domain-context.md)
+- [交付范围与实施边界](./docs/design-docs/delivery-scope.md)
+- [核心信念](./docs/design-docs/core-beliefs.md)
 
 ## Development Notes
 
