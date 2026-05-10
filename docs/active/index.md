@@ -4,7 +4,7 @@
 
 | id | 需求名 | status | owner | tags | 路径 |
 |----|--------|--------|-------|------|------|
-| spec-uc2-recipe | uc2-recipe | draft | — | — | `docs/active/uc2-recipe/` |
+| spec-uc2-recipe | uc2-recipe | shipped | — | recipe, backend | `docs/active/uc2-recipe/` |
 
 ## 如何添加新需求
 
