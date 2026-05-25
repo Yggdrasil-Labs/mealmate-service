@@ -7,21 +7,21 @@ MealMate 仓库导航页，服务 AI Agent 和协作者。
 | 问题 | 文档 |
 |---|---|
 | 技术栈、模块分层、依赖方向 | [ARCHITECTURE.md](./ARCHITECTURE.md) |
-| 业务术语、产品边界 | [docs/PRODUCT_SENSE.md](./docs/PRODUCT_SENSE.md) |
-| 设计原则、领域上下文 | [docs/design-docs/index.md](./docs/design-docs/index.md) |
+| 业务领域、领域边界 | [docs/DOMAINS.md](./docs/DOMAINS.md) |
+| 产品目标、取舍原则 | [docs/PRODUCT_SENSE.md](./docs/PRODUCT_SENSE.md) |
+| 设计决策、核心信念 | [docs/design-docs/index.md](./docs/design-docs/index.md) |
 | 活跃需求、技术债 | [docs/active/index.md](./docs/active/index.md) |
 | 版本归档 | [docs/archive/index.md](./docs/archive/index.md) |
-| 工作流程、审查方法 | [docs/guides/WORKFLOW.md](./docs/guides/WORKFLOW.md) |
-| 外部知识摘要 | [docs/references/](./docs/references/) |
-| 机器生成快照 | [docs/generated/](./docs/generated/) |
+| 需求工作流 | [docs/skills/project-workflow/SKILL.md](./docs/skills/project-workflow/SKILL.md) |
+| 机器生成快照 | [docs/generated/index.md](./docs/generated/index.md) |
 
 ## 建议阅读顺序
 
 1. `AGENTS.md` - 本文件
 2. `ARCHITECTURE.md` - 工程事实与技术边界
-3. `docs/PRODUCT_SENSE.md` - 产品目标与取舍原则
-4. `docs/guides/WORKFLOW.md` - 需求工作流
-5. `docs/design-docs/index.md` - 设计文档索引
+3. `docs/DOMAINS.md` - 业务领域划分
+4. `docs/PRODUCT_SENSE.md` - 产品目标与取舍原则
+5. `docs/design-docs/index.md` - 设计决策索引
 6. `docs/active/index.md` - 活跃需求
 
 ## 文档更新规则
@@ -33,7 +33,11 @@ MealMate 仓库导航页，服务 AI Agent 和协作者。
 | 执行计划、任务分解 | `docs/active/{slug}/plan.md` |
 | 长期设计决策 | `docs/design-docs/` |
 | 技术栈、模块边界 | `ARCHITECTURE.md` |
+| 业务领域划分 | `docs/DOMAINS.md` |
 | 产品边界、取舍原则 | `docs/PRODUCT_SENSE.md` |
+| 安全基线 | `docs/SECURITY.md` |
+| 质量评分 | `docs/QUALITY_SCORE.md` |
+| 稳定性基线 | `docs/RELIABILITY.md` |
 | 技术债 | `docs/active/tech-debt-tracker.md` |
 
 ## 开发命令
@@ -58,7 +62,7 @@ MealMate 仓库导航页，服务 AI Agent 和协作者。
 - 每类知识只有一个主入口
 - 新结论沉淀到文档，不只留在对话中
 - 技术实现遵守 ARCHITECTURE.md 定义的分层与边界
-- 新需求使用 `docs/active/{slug}/` 结构，包含 spec/design/plan
+- 需求工作流遵循 `docs/skills/project-workflow/SKILL.md`
 - 完成的需求归档到 `docs/archive/{version}/`
 
 ## 文档优先级
@@ -68,5 +72,4 @@ MealMate 仓库导航页，服务 AI Agent 和协作者。
 3. `ARCHITECTURE.md`
 4. `docs/active/*`
 5. `docs/design-docs/*`
-6. `docs/references/*`
-7. `README.md`
+6. `README.md`

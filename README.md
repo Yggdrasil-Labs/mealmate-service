@@ -63,7 +63,7 @@ MealMate 的核心业务闭环可以概括为：
 更详细的业务文档见：
 
 - [领域上下文](./docs/design-docs/domain-context.md)
-- [交付范围与实施边界](./docs/design-docs/delivery-scope.md)
+- [业务领域划分](./docs/DOMAINS.md)
 
 ## Tech Stack
 
@@ -141,7 +141,6 @@ source ~/.nvm/nvm.sh
 补充阅读：
 
 - [领域上下文](./docs/design-docs/domain-context.md)
-- [交付范围与实施边界](./docs/design-docs/delivery-scope.md)
 - [核心信念](./docs/design-docs/core-beliefs.md)
 
 ## Development Notes

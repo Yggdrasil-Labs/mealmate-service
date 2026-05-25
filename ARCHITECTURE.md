@@ -187,5 +187,5 @@ MealMate 是一个围绕家庭饮食规划与执行闭环构建的后端服务�
 1. [AGENTS.md](./AGENTS.md) - AI 工作协议与导航
 2. [ARCHITECTURE.md](./ARCHITECTURE.md) - 工程事实与技术边界
 3. [产品感知](./docs/PRODUCT_SENSE.md) - 产品目标与取舍原则
-4. [设计文档索引](./docs/design-docs/index.md) - 设计原则与领域上下文
+4. [设计文档索引](./docs/design-docs/index.md) - 设计决策
 5. [活跃需求索引](./docs/active/index.md) - 当前需求与技术债
