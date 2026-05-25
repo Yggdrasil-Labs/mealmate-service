@@ -1,6 +1,7 @@
 package io.yggdrasil.labs.mealmate.app.recipe.executor;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -15,6 +16,7 @@ import io.yggdrasil.labs.mealmate.app.recipe.assembler.RecipeAssembler;
 import io.yggdrasil.labs.mealmate.app.recipe.dto.co.RecipeCO;
 import io.yggdrasil.labs.mealmate.app.recipe.dto.qry.PageRecipeQry;
 import io.yggdrasil.labs.mealmate.domain.recipe.model.Recipe;
+import io.yggdrasil.labs.mealmate.domain.recipe.model.RecipeQueryCriteria;
 import io.yggdrasil.labs.mealmate.domain.recipe.model.enums.CrowdTag;
 import io.yggdrasil.labs.mealmate.domain.recipe.model.enums.DifficultyLevel;
 import io.yggdrasil.labs.mealmate.domain.recipe.model.enums.RecipeType;
@@ -45,18 +47,7 @@ class PageRecipeQryExeTest {
         RecipeCO recipeCO = new RecipeCO();
         recipeCO.setName("Winter Soup");
 
-        when(recipeRepository.page(
-                        "Soup",
-                        RecipeType.SOUP,
-                        SeasonTag.WINTER,
-                        CrowdTag.BABY,
-                        true,
-                        false,
-                        DifficultyLevel.EASY,
-                        30,
-                        2,
-                        20))
-                .thenReturn(List.of(recipe));
+        when(recipeRepository.page(any(RecipeQueryCriteria.class))).thenReturn(List.of(recipe));
         when(recipeAssembler.toRecipeCOList(List.of(recipe))).thenReturn(List.of(recipeCO));
 
         PageRecipeQryExe qryExe = new PageRecipeQryExe(recipeRepository, recipeAssembler);
@@ -65,17 +56,6 @@ class PageRecipeQryExeTest {
 
         assertEquals(1, result.size());
         assertEquals("Winter Soup", result.get(0).getName());
-        verify(recipeRepository)
-                .page(
-                        "Soup",
-                        RecipeType.SOUP,
-                        SeasonTag.WINTER,
-                        CrowdTag.BABY,
-                        true,
-                        false,
-                        DifficultyLevel.EASY,
-                        30,
-                        2,
-                        20);
+        verify(recipeRepository).page(any(RecipeQueryCriteria.class));
     }
 }

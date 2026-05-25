@@ -26,6 +26,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import io.yggdrasil.labs.mealmate.domain.recipe.model.NutritionFact;
 import io.yggdrasil.labs.mealmate.domain.recipe.model.Recipe;
 import io.yggdrasil.labs.mealmate.domain.recipe.model.RecipeIngredient;
+import io.yggdrasil.labs.mealmate.domain.recipe.model.RecipeQueryCriteria;
 import io.yggdrasil.labs.mealmate.domain.recipe.model.RecipeStep;
 import io.yggdrasil.labs.mealmate.domain.recipe.model.enums.CrowdTag;
 import io.yggdrasil.labs.mealmate.domain.recipe.model.enums.DifficultyLevel;
@@ -106,16 +107,18 @@ class RecipeRepositoryImplTest {
 
         List<Recipe> recipes =
                 recipeRepository.page(
-                        "Soup",
-                        RecipeType.SOUP,
-                        SeasonTag.WINTER,
-                        CrowdTag.BABY,
-                        true,
-                        false,
-                        DifficultyLevel.EASY,
-                        30,
-                        2,
-                        20);
+                        RecipeQueryCriteria.builder()
+                                .keyword("Soup")
+                                .recipeType(RecipeType.SOUP)
+                                .seasonTag(SeasonTag.WINTER)
+                                .crowdTag(CrowdTag.BABY)
+                                .babyFriendly(true)
+                                .weightLossFriendly(false)
+                                .difficultyLevel(DifficultyLevel.EASY)
+                                .maxCookingTime(30)
+                                .pageNum(2)
+                                .pageSize(20)
+                                .build());
 
         assertEquals(1, recipes.size());
         assertEquals("Winter Soup", recipes.get(0).getName());

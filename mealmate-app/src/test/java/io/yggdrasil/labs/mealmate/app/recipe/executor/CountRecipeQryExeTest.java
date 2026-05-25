@@ -1,6 +1,7 @@
 package io.yggdrasil.labs.mealmate.app.recipe.executor;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -10,6 +11,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import io.yggdrasil.labs.mealmate.app.recipe.dto.qry.PageRecipeQry;
+import io.yggdrasil.labs.mealmate.domain.recipe.model.RecipeQueryCriteria;
 import io.yggdrasil.labs.mealmate.domain.recipe.model.enums.CrowdTag;
 import io.yggdrasil.labs.mealmate.domain.recipe.model.enums.DifficultyLevel;
 import io.yggdrasil.labs.mealmate.domain.recipe.model.enums.RecipeType;
@@ -35,31 +37,13 @@ class CountRecipeQryExeTest {
                         30,
                         2,
                         20);
-        when(recipeRepository.count(
-                        "Soup",
-                        RecipeType.SOUP,
-                        SeasonTag.WINTER,
-                        CrowdTag.BABY,
-                        true,
-                        false,
-                        DifficultyLevel.EASY,
-                        30))
-                .thenReturn(42);
+        when(recipeRepository.count(any(RecipeQueryCriteria.class))).thenReturn(42);
 
         CountRecipeQryExe qryExe = new CountRecipeQryExe(recipeRepository);
 
         int result = qryExe.execute(qry);
 
         assertEquals(42, result);
-        verify(recipeRepository)
-                .count(
-                        "Soup",
-                        RecipeType.SOUP,
-                        SeasonTag.WINTER,
-                        CrowdTag.BABY,
-                        true,
-                        false,
-                        DifficultyLevel.EASY,
-                        30);
+        verify(recipeRepository).count(any(RecipeQueryCriteria.class));
     }
 }

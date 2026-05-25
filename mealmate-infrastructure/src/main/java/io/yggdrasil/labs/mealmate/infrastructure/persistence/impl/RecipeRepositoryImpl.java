@@ -15,12 +15,9 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import io.yggdrasil.labs.mealmate.domain.recipe.model.NutritionFact;
 import io.yggdrasil.labs.mealmate.domain.recipe.model.Recipe;
 import io.yggdrasil.labs.mealmate.domain.recipe.model.RecipeIngredient;
+import io.yggdrasil.labs.mealmate.domain.recipe.model.RecipeQueryCriteria;
 import io.yggdrasil.labs.mealmate.domain.recipe.model.RecipeStep;
-import io.yggdrasil.labs.mealmate.domain.recipe.model.enums.CrowdTag;
-import io.yggdrasil.labs.mealmate.domain.recipe.model.enums.DifficultyLevel;
 import io.yggdrasil.labs.mealmate.domain.recipe.model.enums.RecipeStatus;
-import io.yggdrasil.labs.mealmate.domain.recipe.model.enums.RecipeType;
-import io.yggdrasil.labs.mealmate.domain.recipe.model.enums.SeasonTag;
 import io.yggdrasil.labs.mealmate.domain.recipe.repo.RecipeRepository;
 import io.yggdrasil.labs.mealmate.infrastructure.persistence.recipe.convertor.RecipeInfraConvertor;
 import io.yggdrasil.labs.mealmate.infrastructure.persistence.recipe.convertor.RecipeIngredientInfraConvertor;
@@ -80,28 +77,12 @@ public class RecipeRepositoryImpl implements RecipeRepository {
     }
 
     @Override
-    public List<Recipe> page(
-            String keyword,
-            RecipeType recipeType,
-            SeasonTag seasonTag,
-            CrowdTag crowdTag,
-            Boolean babyFriendly,
-            Boolean weightLossFriendly,
-            DifficultyLevel difficultyLevel,
-            Integer maxCookingTime,
-            Integer pageNum,
-            Integer pageSize) {
-        Page<RecipeDO> page = new Page<>(normalizePageNum(pageNum), normalizePageSize(pageSize));
-        LambdaQueryWrapper<RecipeDO> queryWrapper =
-                buildRecipeQuery(
-                        keyword,
-                        recipeType,
-                        seasonTag,
-                        crowdTag,
-                        babyFriendly,
-                        weightLossFriendly,
-                        difficultyLevel,
-                        maxCookingTime);
+    public List<Recipe> page(RecipeQueryCriteria criteria) {
+        Page<RecipeDO> page =
+                new Page<>(
+                        normalizePageNum(criteria.getPageNum()),
+                        normalizePageSize(criteria.getPageSize()));
+        LambdaQueryWrapper<RecipeDO> queryWrapper = buildRecipeQuery(criteria);
         queryWrapper.orderByDesc(RecipeDO::getUpdatedAt, RecipeDO::getId);
         Page<RecipeDO> result = recipeService.page(page, queryWrapper);
         if (result == null || result.getRecords() == null || result.getRecords().isEmpty()) {
@@ -113,25 +94,8 @@ public class RecipeRepositoryImpl implements RecipeRepository {
     }
 
     @Override
-    public int count(
-            String keyword,
-            RecipeType recipeType,
-            SeasonTag seasonTag,
-            CrowdTag crowdTag,
-            Boolean babyFriendly,
-            Boolean weightLossFriendly,
-            DifficultyLevel difficultyLevel,
-            Integer maxCookingTime) {
-        LambdaQueryWrapper<RecipeDO> queryWrapper =
-                buildRecipeQuery(
-                        keyword,
-                        recipeType,
-                        seasonTag,
-                        crowdTag,
-                        babyFriendly,
-                        weightLossFriendly,
-                        difficultyLevel,
-                        maxCookingTime);
+    public int count(RecipeQueryCriteria criteria) {
+        LambdaQueryWrapper<RecipeDO> queryWrapper = buildRecipeQuery(criteria);
         return Math.toIntExact(recipeService.count(queryWrapper));
     }
 
@@ -287,39 +251,31 @@ public class RecipeRepositoryImpl implements RecipeRepository {
                 .map(recipeNutritionInfraConvertor::toEntity);
     }
 
-    private LambdaQueryWrapper<RecipeDO> buildRecipeQuery(
-            String keyword,
-            RecipeType recipeType,
-            SeasonTag seasonTag,
-            CrowdTag crowdTag,
-            Boolean babyFriendly,
-            Boolean weightLossFriendly,
-            DifficultyLevel difficultyLevel,
-            Integer maxCookingTime) {
+    private LambdaQueryWrapper<RecipeDO> buildRecipeQuery(RecipeQueryCriteria criteria) {
         LambdaQueryWrapper<RecipeDO> queryWrapper = new LambdaQueryWrapper<>();
-        if (keyword != null && !keyword.isBlank()) {
-            queryWrapper.like(RecipeDO::getName, keyword.trim());
+        if (criteria.getKeyword() != null && !criteria.getKeyword().isBlank()) {
+            queryWrapper.like(RecipeDO::getName, criteria.getKeyword().trim());
         }
-        if (recipeType != null) {
-            queryWrapper.eq(RecipeDO::getRecipeType, recipeType.name());
+        if (criteria.getRecipeType() != null) {
+            queryWrapper.eq(RecipeDO::getRecipeType, criteria.getRecipeType().name());
         }
-        if (seasonTag != null) {
-            queryWrapper.eq(RecipeDO::getSeasonTag, seasonTag.name());
+        if (criteria.getSeasonTag() != null) {
+            queryWrapper.eq(RecipeDO::getSeasonTag, criteria.getSeasonTag().name());
         }
-        if (crowdTag != null) {
-            queryWrapper.eq(RecipeDO::getCrowdTag, crowdTag.name());
+        if (criteria.getCrowdTag() != null) {
+            queryWrapper.eq(RecipeDO::getCrowdTag, criteria.getCrowdTag().name());
         }
-        if (babyFriendly != null) {
-            queryWrapper.eq(RecipeDO::getBabyFriendly, babyFriendly);
+        if (criteria.getBabyFriendly() != null) {
+            queryWrapper.eq(RecipeDO::getBabyFriendly, criteria.getBabyFriendly());
         }
-        if (weightLossFriendly != null) {
-            queryWrapper.eq(RecipeDO::getWeightLossFriendly, weightLossFriendly);
+        if (criteria.getWeightLossFriendly() != null) {
+            queryWrapper.eq(RecipeDO::getWeightLossFriendly, criteria.getWeightLossFriendly());
         }
-        if (difficultyLevel != null) {
-            queryWrapper.eq(RecipeDO::getDifficultyLevel, difficultyLevel.name());
+        if (criteria.getDifficultyLevel() != null) {
+            queryWrapper.eq(RecipeDO::getDifficultyLevel, criteria.getDifficultyLevel().name());
         }
-        if (maxCookingTime != null) {
-            queryWrapper.le(RecipeDO::getCookingTimeMin, maxCookingTime);
+        if (criteria.getMaxCookingTime() != null) {
+            queryWrapper.le(RecipeDO::getCookingTimeMin, criteria.getMaxCookingTime());
         }
         return queryWrapper;
     }
