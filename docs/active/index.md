@@ -4,6 +4,7 @@
 
 | id | 需求名 | status | owner | tags | 路径 |
 |----|--------|--------|-------|------|------|
+| uc3 | 生成周计划 | spec-draft | — | mealplan, core | [uc3-weekly-meal-plan/](./uc3-weekly-meal-plan/) |
 
 ## 如何添加新需求
 
