@@ -4,7 +4,6 @@ import java.util.List;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 
 import io.yggdrasil.labs.mealmate.domain.recipe.model.enums.CrowdTag;
@@ -32,7 +31,7 @@ public class CreateRecipeCmd {
     private Boolean babyFriendly;
     private Boolean weightLossFriendly;
 
-    @Valid @NotEmpty private List<RecipeIngredientItemCmd> ingredients;
+    @Valid private List<RecipeIngredientItemCmd> ingredients;
 
     @Valid private List<RecipeStepItemCmd> steps;
 
