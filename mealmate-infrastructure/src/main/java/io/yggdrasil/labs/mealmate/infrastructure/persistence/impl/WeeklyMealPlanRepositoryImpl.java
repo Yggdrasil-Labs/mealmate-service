@@ -79,7 +79,13 @@ public class WeeklyMealPlanRepositoryImpl implements WeeklyMealPlanRepository {
         LambdaQueryWrapper<WeeklyMealPlanDO> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(WeeklyMealPlanDO::getFamilyId, familyId)
                 .eq(WeeklyMealPlanDO::getWeekStartDate, weekStartDate);
-        return Optional.ofNullable(weeklyMealPlanService.getOne(wrapper)).map(convertor::toEntity);
+        WeeklyMealPlanDO planDo = weeklyMealPlanService.getOne(wrapper);
+        if (planDo == null) {
+            return Optional.empty();
+        }
+        WeeklyMealPlan plan = convertor.toEntity(planDo);
+        plan.setItems(findItemsByPlanId(planDo.getId()));
+        return Optional.of(plan);
     }
 
     @Override
