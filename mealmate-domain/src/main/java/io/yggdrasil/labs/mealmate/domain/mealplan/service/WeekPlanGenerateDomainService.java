@@ -53,18 +53,22 @@ public class WeekPlanGenerateDomainService {
             items.add(buildItem(mealDate, MealType.BREAKFAST, breakfast, ++sortOrder));
             usedRecipeIds.add(breakfast.getId());
 
-            // 午餐 2 道：包含减脂餐和宝宝餐
+            // 午餐 2 道：包含减脂餐和宝宝餐，同一餐不重复
+            Set<Long> lunchUsed = new HashSet<>();
             for (int i = 0; i < LUNCH_DINNER_COUNT; i++) {
-                Recipe lunch = pickMeal(candidates, usedRecipeIds, true, true);
+                Recipe lunch = pickMeal(candidates, usedRecipeIds, lunchUsed, true, true);
                 items.add(buildItem(mealDate, MealType.LUNCH, lunch, ++sortOrder));
                 usedRecipeIds.add(lunch.getId());
+                lunchUsed.add(lunch.getId());
             }
 
-            // 晚餐 2 道：包含宝宝餐
+            // 晚餐 2 道：包含宝宝餐，同一餐不重复
+            Set<Long> dinnerUsed = new HashSet<>();
             for (int i = 0; i < LUNCH_DINNER_COUNT; i++) {
-                Recipe dinner = pickMeal(candidates, usedRecipeIds, false, true);
+                Recipe dinner = pickMeal(candidates, usedRecipeIds, dinnerUsed, false, true);
                 items.add(buildItem(mealDate, MealType.DINNER, dinner, ++sortOrder));
                 usedRecipeIds.add(dinner.getId());
+                dinnerUsed.add(dinner.getId());
             }
         }
 
@@ -97,11 +101,15 @@ public class WeekPlanGenerateDomainService {
     }
 
     private Recipe pickMeal(
-            List<Recipe> candidates, Set<Long> used, boolean preferWeightLoss, boolean preferBaby) {
-        // 尝试同时满足减脂和宝宝友好
+            List<Recipe> candidates,
+            Set<Long> used,
+            Set<Long> mealUsed,
+            boolean preferWeightLoss,
+            boolean preferBaby) {
+        // 尝试同时满足减脂和宝宝友好，且不与同餐已选重复
         List<Recipe> ideal =
                 candidates.stream()
-                        .filter(r -> !used.contains(r.getId()))
+                        .filter(r -> !used.contains(r.getId()) && !mealUsed.contains(r.getId()))
                         .filter(
                                 r ->
                                         !preferWeightLoss
@@ -111,8 +119,16 @@ public class WeekPlanGenerateDomainService {
         if (!ideal.isEmpty()) {
             return pickRandom(ideal);
         }
-        // 降级：只要求不重样
-        return pickUnused(candidates, used);
+        // 降级：只要求不与同餐重复
+        List<Recipe> notInMeal =
+                candidates.stream()
+                        .filter(r -> !mealUsed.contains(r.getId()))
+                        .collect(Collectors.toList());
+        if (!notInMeal.isEmpty()) {
+            return pickRandom(notInMeal);
+        }
+        // 极端降级：候选全部用尽（理论上不应到此）
+        return pickRandom(candidates);
     }
 
     private Recipe pickUnused(List<Recipe> candidates, Set<Long> used) {
