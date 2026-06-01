@@ -27,4 +27,17 @@ public class MealPlanItem {
     private boolean duplicateFlag;
     private int sortOrder;
     private String remark;
+
+    /** 是否被手动调整过。 */
+    private boolean manuallyAdjusted;
+
+    /** 累计调整次数。 */
+    private int adjustCount;
+
+    /** 调整当前条目的菜品，标记为手动调整并累加次数。 */
+    public void adjust(Long newRecipeId) {
+        this.recipeId = newRecipeId;
+        this.manuallyAdjusted = true;
+        this.adjustCount++;
+    }
 }
