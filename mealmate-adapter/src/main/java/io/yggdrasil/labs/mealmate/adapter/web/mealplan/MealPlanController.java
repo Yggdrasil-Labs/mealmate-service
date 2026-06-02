@@ -22,6 +22,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import io.yggdrasil.labs.mealmate.app.mealplan.application.MealPlanAppService;
 import io.yggdrasil.labs.mealmate.app.mealplan.dto.cmd.AddItemCmd;
+import io.yggdrasil.labs.mealmate.app.mealplan.dto.cmd.AdjustMealItemCmd;
 import io.yggdrasil.labs.mealmate.app.mealplan.dto.cmd.ConfirmPlanCmd;
 import io.yggdrasil.labs.mealmate.app.mealplan.dto.cmd.DeleteItemCmd;
 import io.yggdrasil.labs.mealmate.app.mealplan.dto.cmd.GenerateWeeklyPlanCmd;
@@ -30,12 +31,17 @@ import io.yggdrasil.labs.mealmate.app.mealplan.dto.cmd.ReplaceItemCmd;
 import io.yggdrasil.labs.mealmate.app.mealplan.dto.cmd.UpdatePrepItemStatusCmd;
 import io.yggdrasil.labs.mealmate.app.mealplan.dto.cmd.UpdateShoppingItemCmd;
 import io.yggdrasil.labs.mealmate.app.mealplan.dto.co.ConfirmPlanCO;
+import io.yggdrasil.labs.mealmate.app.mealplan.dto.co.MealPlanItemCO;
+import io.yggdrasil.labs.mealmate.app.mealplan.dto.co.MealPlanItemHistoryCO;
 import io.yggdrasil.labs.mealmate.app.mealplan.dto.co.PrepPlanCO;
+import io.yggdrasil.labs.mealmate.app.mealplan.dto.co.RecipeBriefCO;
 import io.yggdrasil.labs.mealmate.app.mealplan.dto.co.ShoppingItemCO;
 import io.yggdrasil.labs.mealmate.app.mealplan.dto.co.WeeklyMealPlanCO;
 import io.yggdrasil.labs.mealmate.app.mealplan.dto.qry.GetCurrentWeekPlanQry;
+import io.yggdrasil.labs.mealmate.app.mealplan.dto.qry.GetItemHistoryQry;
 import io.yggdrasil.labs.mealmate.app.mealplan.dto.qry.GetMealPlanDetailQry;
 import io.yggdrasil.labs.mealmate.app.mealplan.dto.qry.GetPrepPlanQry;
+import io.yggdrasil.labs.mealmate.app.mealplan.dto.qry.GetRecommendRecipeQry;
 import io.yggdrasil.labs.mealmate.app.mealplan.dto.qry.GetShoppingListQry;
 import lombok.RequiredArgsConstructor;
 
@@ -196,5 +202,49 @@ public class MealPlanController {
         cmd.setItemId(itemId);
         mealPlanAppService.updateShoppingItem(cmd);
         return Response.buildSuccess();
+    }
+
+    @PutMapping("/{planId}/items/{itemId}")
+    @Operation(
+            summary = "Adjust meal item",
+            description = "Replaces the recipe of a plan item with history tracking.")
+    public SingleResponse<MealPlanItemCO> adjustMealItem(
+            @Parameter(description = "Plan identifier.") @PathVariable("planId") Long planId,
+            @Parameter(description = "Item identifier.") @PathVariable("itemId") Long itemId,
+            @Valid @RequestBody AdjustMealItemCmd cmd) {
+        cmd.setPlanId(planId);
+        cmd.setItemId(itemId);
+        SingleResponse<MealPlanItemCO> response = SingleResponse.<MealPlanItemCO>buildSuccess();
+        response.setData(mealPlanAppService.adjustMealItem(cmd));
+        return response;
+    }
+
+    @GetMapping("/{planId}/items/{itemId}/recommend")
+    @Operation(
+            summary = "Get recommend recipes",
+            description = "Returns recommended replacement recipes for a plan item.")
+    public MultiResponse<RecipeBriefCO> getRecommendRecipes(
+            @Parameter(description = "Plan identifier.") @PathVariable("planId") Long planId,
+            @Parameter(description = "Item identifier.") @PathVariable("itemId") Long itemId) {
+        MultiResponse<RecipeBriefCO> response = MultiResponse.<RecipeBriefCO>buildSuccess();
+        response.setData(
+                mealPlanAppService.getRecommendRecipes(
+                        GetRecommendRecipeQry.builder().planId(planId).itemId(itemId).build()));
+        return response;
+    }
+
+    @GetMapping("/{planId}/items/{itemId}/history")
+    @Operation(
+            summary = "Get item adjust history",
+            description = "Returns adjustment history for a plan item.")
+    public MultiResponse<MealPlanItemHistoryCO> getItemHistory(
+            @Parameter(description = "Plan identifier.") @PathVariable("planId") Long planId,
+            @Parameter(description = "Item identifier.") @PathVariable("itemId") Long itemId) {
+        MultiResponse<MealPlanItemHistoryCO> response =
+                MultiResponse.<MealPlanItemHistoryCO>buildSuccess();
+        response.setData(
+                mealPlanAppService.getItemHistory(
+                        GetItemHistoryQry.builder().planId(planId).itemId(itemId).build()));
+        return response;
     }
 }
