@@ -21,4 +21,6 @@ public class MealPlanItemCO {
     private String coverImageUrl;
     private Integer cookingTimeMin;
     private int sortOrder;
+    private boolean manuallyAdjusted;
+    private int adjustCount;
 }

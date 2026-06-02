@@ -5,7 +5,9 @@ import org.springframework.context.annotation.Configuration;
 
 import io.yggdrasil.labs.mealmate.domain.mealplan.service.DuplicateCheckDomainService;
 import io.yggdrasil.labs.mealmate.domain.mealplan.service.IngredientFilterDomainService;
+import io.yggdrasil.labs.mealmate.domain.mealplan.service.MealPlanRuleDomainService;
 import io.yggdrasil.labs.mealmate.domain.mealplan.service.PrepPlanDeriveDomainService;
+import io.yggdrasil.labs.mealmate.domain.mealplan.service.RecipeRecommendDomainService;
 import io.yggdrasil.labs.mealmate.domain.mealplan.service.WeekPlanGenerateDomainService;
 
 /**
@@ -34,5 +36,15 @@ public class MealPlanAppConfiguration {
     @Bean
     public PrepPlanDeriveDomainService prepPlanDeriveDomainService() {
         return new PrepPlanDeriveDomainService();
+    }
+
+    @Bean
+    public MealPlanRuleDomainService mealPlanRuleDomainService() {
+        return new MealPlanRuleDomainService();
+    }
+
+    @Bean
+    public RecipeRecommendDomainService recipeRecommendDomainService() {
+        return new RecipeRecommendDomainService();
     }
 }

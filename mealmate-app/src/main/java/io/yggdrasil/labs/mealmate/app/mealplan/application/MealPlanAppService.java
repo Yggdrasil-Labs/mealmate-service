@@ -20,6 +20,7 @@ import org.springframework.validation.annotation.Validated;
 
 import io.yggdrasil.labs.mealmate.app.mealplan.dto.assembler.MealPlanAssembler;
 import io.yggdrasil.labs.mealmate.app.mealplan.dto.cmd.AddItemCmd;
+import io.yggdrasil.labs.mealmate.app.mealplan.dto.cmd.AdjustMealItemCmd;
 import io.yggdrasil.labs.mealmate.app.mealplan.dto.cmd.ConfirmPlanCmd;
 import io.yggdrasil.labs.mealmate.app.mealplan.dto.cmd.DeleteItemCmd;
 import io.yggdrasil.labs.mealmate.app.mealplan.dto.cmd.GenerateWeeklyPlanCmd;
@@ -28,13 +29,21 @@ import io.yggdrasil.labs.mealmate.app.mealplan.dto.cmd.ReplaceItemCmd;
 import io.yggdrasil.labs.mealmate.app.mealplan.dto.cmd.UpdatePrepItemStatusCmd;
 import io.yggdrasil.labs.mealmate.app.mealplan.dto.cmd.UpdateShoppingItemCmd;
 import io.yggdrasil.labs.mealmate.app.mealplan.dto.co.ConfirmPlanCO;
+import io.yggdrasil.labs.mealmate.app.mealplan.dto.co.MealPlanItemCO;
+import io.yggdrasil.labs.mealmate.app.mealplan.dto.co.MealPlanItemHistoryCO;
 import io.yggdrasil.labs.mealmate.app.mealplan.dto.co.PrepPlanCO;
+import io.yggdrasil.labs.mealmate.app.mealplan.dto.co.RecipeBriefCO;
 import io.yggdrasil.labs.mealmate.app.mealplan.dto.co.ShoppingItemCO;
 import io.yggdrasil.labs.mealmate.app.mealplan.dto.co.WeeklyMealPlanCO;
 import io.yggdrasil.labs.mealmate.app.mealplan.dto.qry.GetCurrentWeekPlanQry;
+import io.yggdrasil.labs.mealmate.app.mealplan.dto.qry.GetItemHistoryQry;
 import io.yggdrasil.labs.mealmate.app.mealplan.dto.qry.GetMealPlanDetailQry;
 import io.yggdrasil.labs.mealmate.app.mealplan.dto.qry.GetPrepPlanQry;
+import io.yggdrasil.labs.mealmate.app.mealplan.dto.qry.GetRecommendRecipeQry;
 import io.yggdrasil.labs.mealmate.app.mealplan.dto.qry.GetShoppingListQry;
+import io.yggdrasil.labs.mealmate.app.mealplan.executor.AdjustMealItemCmdExe;
+import io.yggdrasil.labs.mealmate.app.mealplan.executor.GetItemHistoryQryExe;
+import io.yggdrasil.labs.mealmate.app.mealplan.executor.GetRecommendRecipeQryExe;
 import io.yggdrasil.labs.mealmate.domain.family.repo.FamilyMemberRepository;
 import io.yggdrasil.labs.mealmate.domain.family.repo.MemberPreferenceRepository;
 import io.yggdrasil.labs.mealmate.domain.mealplan.model.MealPlanItem;
@@ -71,6 +80,9 @@ public class MealPlanAppService {
     private final IngredientFilterDomainService ingredientFilterDomainService;
     private final DuplicateCheckDomainService duplicateCheckDomainService;
     private final PrepPlanDeriveDomainService prepPlanDeriveDomainService;
+    private final AdjustMealItemCmdExe adjustMealItemCmdExe;
+    private final GetRecommendRecipeQryExe getRecommendRecipeQryExe;
+    private final GetItemHistoryQryExe getItemHistoryQryExe;
 
     /** 生成一周计划。 P1-fix: 添加 @Transactional、weekStartDate 周一校验、覆盖旧 DRAFT。 */
     @Transactional(rollbackFor = Exception.class)
@@ -332,6 +344,22 @@ public class MealPlanAppService {
     public void updateShoppingItem(@Valid UpdateShoppingItemCmd cmd) {
         assertPlanOwnership(cmd.getPlanId());
         weeklyMealPlanRepository.updateShoppingItemPurchased(cmd.getItemId(), cmd.getPurchased());
+    }
+
+    /** 替换餐次菜品（带调整历史记录）。 */
+    @Transactional(rollbackFor = Exception.class)
+    public MealPlanItemCO adjustMealItem(@Valid AdjustMealItemCmd cmd) {
+        return adjustMealItemCmdExe.execute(cmd);
+    }
+
+    /** 获取推荐菜品列表。 */
+    public List<RecipeBriefCO> getRecommendRecipes(GetRecommendRecipeQry qry) {
+        return getRecommendRecipeQryExe.execute(qry);
+    }
+
+    /** 获取条目调整历史。 */
+    public List<MealPlanItemHistoryCO> getItemHistory(GetItemHistoryQry qry) {
+        return getItemHistoryQryExe.execute(qry);
     }
 
     // ─── 内部辅助 ───
