@@ -60,4 +60,10 @@ public class MealPlanItemDO {
 
     @TableField("updated_by")
     private Long updatedBy;
+
+    @TableField("is_manually_adjusted")
+    private Boolean isManuallyAdjusted;
+
+    @TableField("adjust_count")
+    private Integer adjustCount;
 }

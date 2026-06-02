@@ -7,10 +7,12 @@ import org.mapstruct.Mapping;
 import org.mapstruct.Named;
 
 import io.yggdrasil.labs.mealmate.domain.mealplan.model.MealPlanItem;
+import io.yggdrasil.labs.mealmate.domain.mealplan.model.MealPlanItemHistory;
 import io.yggdrasil.labs.mealmate.domain.mealplan.model.PrepPlan;
 import io.yggdrasil.labs.mealmate.domain.mealplan.model.PrepPlanItem;
 import io.yggdrasil.labs.mealmate.domain.mealplan.model.ShoppingItem;
 import io.yggdrasil.labs.mealmate.domain.mealplan.model.WeeklyMealPlan;
+import io.yggdrasil.labs.mealmate.domain.mealplan.model.enums.AdjustReason;
 import io.yggdrasil.labs.mealmate.domain.mealplan.model.enums.MealPlanCrowdType;
 import io.yggdrasil.labs.mealmate.domain.mealplan.model.enums.MealType;
 import io.yggdrasil.labs.mealmate.domain.mealplan.model.enums.PlanSource;
@@ -19,6 +21,7 @@ import io.yggdrasil.labs.mealmate.domain.mealplan.model.enums.PrepPriority;
 import io.yggdrasil.labs.mealmate.domain.mealplan.model.enums.PrepTaskStatus;
 import io.yggdrasil.labs.mealmate.domain.mealplan.model.enums.PushStatus;
 import io.yggdrasil.labs.mealmate.infrastructure.persistence.mealplan.dataobject.MealPlanItemDO;
+import io.yggdrasil.labs.mealmate.infrastructure.persistence.mealplan.dataobject.MealPlanItemHistoryDO;
 import io.yggdrasil.labs.mealmate.infrastructure.persistence.mealplan.dataobject.PrepPlanDO;
 import io.yggdrasil.labs.mealmate.infrastructure.persistence.mealplan.dataobject.PrepPlanItemDO;
 import io.yggdrasil.labs.mealmate.infrastructure.persistence.mealplan.dataobject.ShoppingItemDO;
@@ -45,6 +48,7 @@ public interface MealPlanInfraConvertor {
     @Mapping(target = "crowdType", source = "crowdType", qualifiedByName = "toCrowdType")
     @Mapping(target = "weightLoss", source = "isWeightLoss")
     @Mapping(target = "babyMeal", source = "isBabyMeal")
+    @Mapping(target = "manuallyAdjusted", source = "isManuallyAdjusted")
     MealPlanItem toItemEntity(MealPlanItemDO d);
 
     List<MealPlanItem> toItemEntities(List<MealPlanItemDO> list);
@@ -53,6 +57,7 @@ public interface MealPlanInfraConvertor {
     @Mapping(target = "crowdType", source = "crowdType", qualifiedByName = "fromCrowdType")
     @Mapping(target = "isWeightLoss", source = "weightLoss")
     @Mapping(target = "isBabyMeal", source = "babyMeal")
+    @Mapping(target = "isManuallyAdjusted", source = "manuallyAdjusted")
     MealPlanItemDO toItemDo(MealPlanItem e);
 
     List<MealPlanItemDO> toItemDos(List<MealPlanItem> list);
@@ -161,6 +166,26 @@ public interface MealPlanInfraConvertor {
 
     @Named("fromPrepTaskStatus")
     default String fromPrepTaskStatus(PrepTaskStatus v) {
+        return v == null ? null : v.name();
+    }
+
+    // --- MealPlanItemHistory ---
+
+    @Mapping(target = "adjustReason", source = "adjustReason", qualifiedByName = "fromAdjustReason")
+    MealPlanItemHistoryDO toHistoryDo(MealPlanItemHistory history);
+
+    @Mapping(target = "adjustReason", source = "adjustReason", qualifiedByName = "toAdjustReason")
+    MealPlanItemHistory toHistoryEntity(MealPlanItemHistoryDO d);
+
+    List<MealPlanItemHistory> toHistoryEntities(List<MealPlanItemHistoryDO> list);
+
+    @Named("toAdjustReason")
+    default AdjustReason toAdjustReason(String v) {
+        return v == null ? null : AdjustReason.valueOf(v);
+    }
+
+    @Named("fromAdjustReason")
+    default String fromAdjustReason(AdjustReason v) {
         return v == null ? null : v.name();
     }
 }
