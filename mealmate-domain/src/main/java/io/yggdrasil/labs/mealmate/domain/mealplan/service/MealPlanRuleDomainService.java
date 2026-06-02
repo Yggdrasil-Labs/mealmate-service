@@ -31,7 +31,7 @@ public class MealPlanRuleDomainService {
                         .anyMatch(i -> i.getRecipeId().equals(newRecipeId));
 
         if (duplicate) {
-            throw new RuntimeException("RECIPE_DUPLICATE_IN_WEEK");
+            throw new IllegalArgumentException("RECIPE_DUPLICATE_IN_WEEK");
         }
     }
 

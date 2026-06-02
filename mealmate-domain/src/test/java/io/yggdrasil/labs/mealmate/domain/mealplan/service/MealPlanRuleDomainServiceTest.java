@@ -27,7 +27,8 @@ class MealPlanRuleDomainServiceTest {
                                 .recipeId(100L)
                                 .crowdType(MealPlanCrowdType.FAMILY)
                                 .build());
-        assertThrows(RuntimeException.class, () -> service.validateNoDuplicate(items, 2L, 200L));
+        assertThrows(
+                IllegalArgumentException.class, () -> service.validateNoDuplicate(items, 2L, 200L));
     }
 
     @Test
