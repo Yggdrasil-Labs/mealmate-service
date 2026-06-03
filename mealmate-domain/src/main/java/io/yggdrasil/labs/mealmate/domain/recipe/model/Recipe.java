@@ -15,11 +15,13 @@ import io.yggdrasil.labs.mealmate.domain.recipe.model.enums.RecipeStatus;
 import io.yggdrasil.labs.mealmate.domain.recipe.model.enums.RecipeType;
 import io.yggdrasil.labs.mealmate.domain.recipe.model.enums.SeasonTag;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /** 菜谱聚合根。 */
 @Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class Recipe {
