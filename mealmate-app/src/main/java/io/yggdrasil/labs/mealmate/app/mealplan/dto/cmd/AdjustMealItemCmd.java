@@ -13,8 +13,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class AdjustMealItemCmd {
 
-    @NotNull private Long planId;
-    @NotNull private Long itemId;
+    private Long planId;
+    private Long itemId;
     @NotNull private Long newRecipeId;
     private String adjustReason;
 }

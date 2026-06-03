@@ -28,10 +28,15 @@ public class GetItemHistoryQryExe {
     private final RecipeRepository recipeRepository;
 
     public List<MealPlanItemHistoryCO> execute(GetItemHistoryQry qry) {
-        // 1. 校验条目存在
-        weeklyMealPlanRepository
-                .findItemById(qry.getItemId())
-                .orElseThrow(() -> new IllegalArgumentException("MEAL_PLAN_ITEM_NOT_FOUND"));
+        // 1. 校验条目存在且属于指定计划（防 IDOR）
+        var item =
+                weeklyMealPlanRepository
+                        .findItemById(qry.getItemId())
+                        .orElseThrow(
+                                () -> new IllegalArgumentException("MEAL_PLAN_ITEM_NOT_FOUND"));
+        if (!item.getPlanId().equals(qry.getPlanId())) {
+            throw new IllegalArgumentException("MEAL_PLAN_ITEM_NOT_FOUND");
+        }
 
         // 2. 查询历史记录
         List<MealPlanItemHistory> histories = historyRepository.findByItemId(qry.getItemId());
