@@ -15,6 +15,9 @@ public interface RecipeRepository {
 
     Optional<Recipe> findById(Long recipeId);
 
+    /** 批量查询菜谱（仅返回主体信息，不含 ingredients/steps/nutrition）。 */
+    List<Recipe> findByIds(List<Long> ids);
+
     Optional<Recipe> findByName(String name);
 
     /** 分页查询菜谱列表。 */

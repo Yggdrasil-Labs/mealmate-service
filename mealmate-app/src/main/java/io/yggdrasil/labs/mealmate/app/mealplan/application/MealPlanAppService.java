@@ -230,19 +230,12 @@ public class MealPlanAppService {
         }
         assertPlanDraft(item.getPlanId());
 
-        // P1: 最后一项不可删除——检查同 planId+mealDate+mealType 的 item 数量
+        // 最后一项不可删除——委托聚合根统计同餐次条目数
         WeeklyMealPlan plan =
                 weeklyMealPlanRepository
                         .findByIdWithItems(item.getPlanId())
                         .orElseThrow(() -> new IllegalArgumentException("PLAN_NOT_FOUND"));
-        long sameSlotCount =
-                plan.getItems().stream()
-                        .filter(
-                                i ->
-                                        i.getMealDate().equals(item.getMealDate())
-                                                && i.getMealType() == item.getMealType())
-                        .count();
-        if (sameSlotCount <= 1) {
+        if (plan.countItemsInSlot(item.getMealDate(), item.getMealType()) <= 1) {
             throw new IllegalStateException("MEAL_PLAN_ITEM_LAST_ONE");
         }
 
@@ -286,10 +279,8 @@ public class MealPlanAppService {
                         .findByIdWithItems(cmd.getPlanId())
                         .orElseThrow(() -> new IllegalArgumentException("PLAN_NOT_FOUND"));
 
-        // P1: 已确认不可重复确认
-        if (plan.getStatus() != PlanStatus.DRAFT) {
-            throw new IllegalStateException("MEAL_PLAN_ALREADY_CONFIRMED");
-        }
+        // 聚合根状态转换
+        plan.confirm();
 
         Map<Long, Recipe> recipeMap = loadRecipeMapForPlan(plan);
 
@@ -305,8 +296,8 @@ public class MealPlanAppService {
                         plan.getId(), plan.getItems(), recipeMap);
         weeklyMealPlanRepository.saveShoppingItems(plan.getId(), shoppingItems);
 
-        // 更新状态
-        weeklyMealPlanRepository.updateStatus(plan.getId(), PlanStatus.CONFIRMED);
+        // 持久化状态变更
+        weeklyMealPlanRepository.updateStatus(plan.getId(), plan.getStatus());
 
         return MealPlanAssembler.toConfirmPlanCO(
                 plan.getId(),
@@ -364,12 +355,10 @@ public class MealPlanAppService {
 
     // ─── 内部辅助 ───
 
-    /** P1: 检查计划状态必须为 DRAFT 才允许编辑操作。 非 DRAFT 抛出 MEAL_PLAN_ALREADY_CONFIRMED 异常。 */
+    /** 检查计划状态必须为 DRAFT 才允许编辑操作，委托聚合根状态守卫。 */
     private void assertPlanDraft(Long planId) {
         WeeklyMealPlan plan = assertPlanOwnership(planId);
-        if (plan.getStatus() != PlanStatus.DRAFT) {
-            throw new IllegalStateException("MEAL_PLAN_ALREADY_CONFIRMED");
-        }
+        plan.assertDraft();
     }
 
     /** 验证 planId 存在性。 TODO: 接入认证后恢复 familyId 归属校验，防止 IDOR 越权。 */
@@ -397,12 +386,11 @@ public class MealPlanAppService {
                         .filter(id -> id != null && id > 0)
                         .distinct()
                         .collect(Collectors.toList());
-        // P2: 逐个查询（N+1），待 RecipeRepository 添加 findByIds 批量方法后优化
-        return recipeIds.stream()
-                .map(recipeRepository::findById)
-                .filter(Optional::isPresent)
-                .map(Optional::get)
-                .collect(Collectors.toMap(Recipe::getId, Function.identity()));
+        if (recipeIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        return recipeRepository.findByIds(recipeIds).stream()
+                .collect(Collectors.toMap(Recipe::getId, Function.identity(), (a, b) -> a));
     }
 
     private Map<Long, Recipe> buildRecipeMap(List<Recipe> recipes) {
