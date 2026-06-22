@@ -1,5 +1,7 @@
 ALTER TABLE `meal_plan_item`
-  ADD COLUMN `is_manually_adjusted` TINYINT NOT NULL DEFAULT 0 COMMENT '是否已手动调整',
+  ADD COLUMN `is_manually_adjusted` TINYINT NOT NULL DEFAULT 0 COMMENT '是否已手动调整';
+
+ALTER TABLE `meal_plan_item`
   ADD COLUMN `adjust_count` INT NOT NULL DEFAULT 0 COMMENT '累计调整次数';
 
 CREATE TABLE IF NOT EXISTS `meal_plan_item_history` (
