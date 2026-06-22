@@ -66,6 +66,20 @@ public class RecipeRepositoryImpl implements RecipeRepository {
     }
 
     @Override
+    public List<Recipe> findByIds(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<RecipeDO> dataObjects = recipeService.listByIds(ids);
+        if (dataObjects == null || dataObjects.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return dataObjects.stream()
+                .map(recipeInfraConvertor::toEntity)
+                .collect(Collectors.toList());
+    }
+
+    @Override
     public Optional<Recipe> findByName(String name) {
         if (name == null || name.isBlank()) {
             return Optional.empty();
