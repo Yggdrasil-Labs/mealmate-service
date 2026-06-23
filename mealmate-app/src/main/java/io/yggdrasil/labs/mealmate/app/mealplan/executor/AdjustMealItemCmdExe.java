@@ -3,6 +3,7 @@ package io.yggdrasil.labs.mealmate.app.mealplan.executor;
 import java.time.LocalDateTime;
 
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import io.yggdrasil.labs.mealmate.app.mealplan.dto.cmd.AdjustMealItemCmd;
 import io.yggdrasil.labs.mealmate.app.mealplan.dto.co.MealPlanItemCO;
@@ -31,6 +32,7 @@ public class AdjustMealItemCmdExe {
     private final MealPlanRuleDomainService ruleDomainService;
 
     /** 执行菜品替换，记录调整历史并返回更新后的条目。 */
+    @Transactional(rollbackFor = Exception.class)
     public MealPlanItemCO execute(AdjustMealItemCmd cmd) {
         // 1. 加载计划
         WeeklyMealPlan plan =
