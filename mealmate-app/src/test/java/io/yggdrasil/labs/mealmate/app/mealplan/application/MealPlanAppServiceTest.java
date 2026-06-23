@@ -26,6 +26,7 @@ import io.yggdrasil.labs.mealmate.app.mealplan.dto.cmd.ReplaceItemCmd;
 import io.yggdrasil.labs.mealmate.app.mealplan.executor.AdjustMealItemCmdExe;
 import io.yggdrasil.labs.mealmate.app.mealplan.executor.GetItemHistoryQryExe;
 import io.yggdrasil.labs.mealmate.app.mealplan.executor.GetRecommendRecipeQryExe;
+import io.yggdrasil.labs.mealmate.domain.common.exception.BizException;
 import io.yggdrasil.labs.mealmate.domain.family.repo.FamilyMemberRepository;
 import io.yggdrasil.labs.mealmate.domain.family.repo.MemberPreferenceRepository;
 import io.yggdrasil.labs.mealmate.domain.mealplan.model.MealPlanItem;
@@ -85,9 +86,8 @@ class MealPlanAppServiceTest {
         cmd.setFamilyId(1L);
         cmd.setWeekStartDate(LocalDate.of(2026, 6, 24));
 
-        IllegalArgumentException ex =
-                assertThrows(IllegalArgumentException.class, () -> service.generateWeeklyPlan(cmd));
-        assertEquals("PLAN_WEEK_START_DATE_INVALID", ex.getMessage());
+        BizException ex = assertThrows(BizException.class, () -> service.generateWeeklyPlan(cmd));
+        assertEquals("PLAN_WEEK_START_DATE_INVALID", ex.getErrCode());
     }
 
     @Test
@@ -102,9 +102,8 @@ class MealPlanAppServiceTest {
         when(weeklyMealPlanRepository.findByFamilyIdAndWeekStartDateForUpdate(1L, monday))
                 .thenReturn(Optional.of(confirmed));
 
-        IllegalStateException ex =
-                assertThrows(IllegalStateException.class, () -> service.generateWeeklyPlan(cmd));
-        assertEquals("MEAL_PLAN_ALREADY_CONFIRMED", ex.getMessage());
+        BizException ex = assertThrows(BizException.class, () -> service.generateWeeklyPlan(cmd));
+        assertEquals("MEAL_PLAN_ALREADY_CONFIRMED", ex.getErrCode());
     }
 
     // ─── confirmPlan ───
@@ -116,11 +115,11 @@ class MealPlanAppServiceTest {
         when(weeklyMealPlanRepository.findById(1L)).thenReturn(Optional.of(plan));
         when(weeklyMealPlanRepository.findByIdWithItems(1L)).thenReturn(Optional.of(plan));
 
-        IllegalStateException ex =
+        BizException ex =
                 assertThrows(
-                        IllegalStateException.class,
+                        BizException.class,
                         () -> service.confirmPlan(ConfirmPlanCmd.builder().planId(1L).build()));
-        assertEquals("MEAL_PLAN_ALREADY_CONFIRMED", ex.getMessage());
+        assertEquals("MEAL_PLAN_ALREADY_CONFIRMED", ex.getErrCode());
     }
 
     // ─── deleteItem ───
@@ -149,13 +148,13 @@ class MealPlanAppServiceTest {
         when(weeklyMealPlanRepository.findById(1L)).thenReturn(Optional.of(plan));
         when(weeklyMealPlanRepository.findByIdWithItems(1L)).thenReturn(Optional.of(plan));
 
-        IllegalStateException ex =
+        BizException ex =
                 assertThrows(
-                        IllegalStateException.class,
+                        BizException.class,
                         () ->
                                 service.deleteItem(
                                         DeleteItemCmd.builder().planId(1L).itemId(10L).build()));
-        assertEquals("MEAL_PLAN_ITEM_LAST_ONE", ex.getMessage());
+        assertEquals("MEAL_PLAN_ITEM_LAST_ONE", ex.getErrCode());
     }
 
     // ─── replaceItem state guard ───
@@ -171,9 +170,8 @@ class MealPlanAppServiceTest {
         cmd.setItemId(10L);
         cmd.setRecipeId(200L);
 
-        IllegalStateException ex =
-                assertThrows(IllegalStateException.class, () -> service.replaceItem(cmd));
-        assertEquals("MEAL_PLAN_ALREADY_CONFIRMED", ex.getMessage());
+        BizException ex = assertThrows(BizException.class, () -> service.replaceItem(cmd));
+        assertEquals("MEAL_PLAN_ALREADY_CONFIRMED", ex.getErrCode());
     }
 
     // ─── addItem state guard ───
@@ -190,9 +188,8 @@ class MealPlanAppServiceTest {
         cmd.setMealDate(LocalDate.of(2026, 6, 22));
         cmd.setMealType("LUNCH");
 
-        IllegalStateException ex =
-                assertThrows(IllegalStateException.class, () -> service.addItem(cmd));
-        assertEquals("MEAL_PLAN_ALREADY_CONFIRMED", ex.getMessage());
+        BizException ex = assertThrows(BizException.class, () -> service.addItem(cmd));
+        assertEquals("MEAL_PLAN_ALREADY_CONFIRMED", ex.getErrCode());
     }
 
     // ─── happy paths ───
