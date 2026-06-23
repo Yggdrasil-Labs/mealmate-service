@@ -6,6 +6,7 @@ import java.util.*;
 
 import org.junit.jupiter.api.Test;
 
+import io.yggdrasil.labs.mealmate.domain.common.exception.BizException;
 import io.yggdrasil.labs.mealmate.domain.mealplan.model.MealPlanItem;
 import io.yggdrasil.labs.mealmate.domain.mealplan.model.enums.MealPlanCrowdType;
 
@@ -27,8 +28,7 @@ class MealPlanRuleDomainServiceTest {
                                 .recipeId(100L)
                                 .crowdType(MealPlanCrowdType.FAMILY)
                                 .build());
-        assertThrows(
-                IllegalArgumentException.class, () -> service.validateNoDuplicate(items, 2L, 200L));
+        assertThrows(BizException.class, () -> service.validateNoDuplicate(items, 2L, 200L));
     }
 
     @Test

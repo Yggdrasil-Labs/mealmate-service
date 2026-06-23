@@ -4,6 +4,8 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import io.yggdrasil.labs.mealmate.domain.common.exception.BizException;
+import io.yggdrasil.labs.mealmate.domain.mealplan.exception.MealPlanErrorCode;
 import io.yggdrasil.labs.mealmate.domain.mealplan.model.enums.MealType;
 import io.yggdrasil.labs.mealmate.domain.mealplan.model.enums.PlanSource;
 import io.yggdrasil.labs.mealmate.domain.mealplan.model.enums.PlanStatus;
@@ -35,7 +37,7 @@ public class WeeklyMealPlan {
     /** 断言计划处于可编辑状态（DRAFT）。非 DRAFT 状态抵绝编辑操作。 */
     public void assertDraft() {
         if (this.status != PlanStatus.DRAFT) {
-            throw new IllegalStateException("MEAL_PLAN_ALREADY_CONFIRMED");
+            throw new BizException(MealPlanErrorCode.PLAN_ALREADY_CONFIRMED);
         }
     }
 

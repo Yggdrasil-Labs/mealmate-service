@@ -8,6 +8,8 @@ import org.springframework.stereotype.Component;
 
 import io.yggdrasil.labs.mealmate.app.mealplan.dto.co.MealPlanItemHistoryCO;
 import io.yggdrasil.labs.mealmate.app.mealplan.dto.qry.GetItemHistoryQry;
+import io.yggdrasil.labs.mealmate.domain.common.exception.BizException;
+import io.yggdrasil.labs.mealmate.domain.mealplan.exception.MealPlanErrorCode;
 import io.yggdrasil.labs.mealmate.domain.mealplan.model.MealPlanItemHistory;
 import io.yggdrasil.labs.mealmate.domain.mealplan.repo.MealPlanItemHistoryRepository;
 import io.yggdrasil.labs.mealmate.domain.mealplan.repo.WeeklyMealPlanRepository;
@@ -32,10 +34,9 @@ public class GetItemHistoryQryExe {
         var item =
                 weeklyMealPlanRepository
                         .findItemById(qry.getItemId())
-                        .orElseThrow(
-                                () -> new IllegalArgumentException("MEAL_PLAN_ITEM_NOT_FOUND"));
+                        .orElseThrow(() -> new BizException(MealPlanErrorCode.ITEM_NOT_FOUND));
         if (!item.getPlanId().equals(qry.getPlanId())) {
-            throw new IllegalArgumentException("MEAL_PLAN_ITEM_NOT_FOUND");
+            throw new BizException(MealPlanErrorCode.ITEM_NOT_FOUND);
         }
 
         // 2. 查询历史记录

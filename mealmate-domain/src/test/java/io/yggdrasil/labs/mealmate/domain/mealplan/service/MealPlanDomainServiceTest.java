@@ -18,6 +18,7 @@ import java.util.Set;
 
 import org.junit.jupiter.api.Test;
 
+import io.yggdrasil.labs.mealmate.domain.common.exception.BizException;
 import io.yggdrasil.labs.mealmate.domain.mealplan.model.MealPlanItem;
 import io.yggdrasil.labs.mealmate.domain.mealplan.model.PrepPlan;
 import io.yggdrasil.labs.mealmate.domain.mealplan.model.ShoppingItem;
@@ -112,7 +113,7 @@ class MealPlanDomainServiceTest {
     @Test
     void shouldThrowWhenCandidatesEmpty() {
         assertThrows(
-                IllegalStateException.class,
+                BizException.class,
                 () -> genService.generate(1L, LocalDate.now(), Collections.emptyList()));
     }
 

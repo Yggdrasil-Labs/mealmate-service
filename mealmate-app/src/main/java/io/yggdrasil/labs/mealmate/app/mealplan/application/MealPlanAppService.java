@@ -44,8 +44,10 @@ import io.yggdrasil.labs.mealmate.app.mealplan.dto.qry.GetShoppingListQry;
 import io.yggdrasil.labs.mealmate.app.mealplan.executor.AdjustMealItemCmdExe;
 import io.yggdrasil.labs.mealmate.app.mealplan.executor.GetItemHistoryQryExe;
 import io.yggdrasil.labs.mealmate.app.mealplan.executor.GetRecommendRecipeQryExe;
+import io.yggdrasil.labs.mealmate.domain.common.exception.BizException;
 import io.yggdrasil.labs.mealmate.domain.family.repo.FamilyMemberRepository;
 import io.yggdrasil.labs.mealmate.domain.family.repo.MemberPreferenceRepository;
+import io.yggdrasil.labs.mealmate.domain.mealplan.exception.MealPlanErrorCode;
 import io.yggdrasil.labs.mealmate.domain.mealplan.model.MealPlanItem;
 import io.yggdrasil.labs.mealmate.domain.mealplan.model.PrepPlan;
 import io.yggdrasil.labs.mealmate.domain.mealplan.model.ShoppingItem;
@@ -89,7 +91,7 @@ public class MealPlanAppService {
     public WeeklyMealPlanCO generateWeeklyPlan(@Valid GenerateWeeklyPlanCmd cmd) {
         // P1: weekStartDate 必须是周一
         if (cmd.getWeekStartDate().getDayOfWeek() != DayOfWeek.MONDAY) {
-            throw new IllegalArgumentException("PLAN_WEEK_START_DATE_INVALID");
+            throw new BizException(MealPlanErrorCode.PLAN_WEEK_START_DATE_INVALID);
         }
 
         // TODO: 从认证上下文获取当前家庭 ID，当前为临时方案
@@ -102,7 +104,7 @@ public class MealPlanAppService {
         if (existing.isPresent()) {
             WeeklyMealPlan old = existing.get();
             if (old.getStatus() == PlanStatus.CONFIRMED) {
-                throw new IllegalStateException("MEAL_PLAN_ALREADY_CONFIRMED");
+                throw new BizException(MealPlanErrorCode.PLAN_ALREADY_CONFIRMED);
             }
             weeklyMealPlanRepository.deleteItemsByPlanId(old.getId());
             weeklyMealPlanRepository.logicalDelete(old.getId());
@@ -179,7 +181,7 @@ public class MealPlanAppService {
         WeeklyMealPlan plan =
                 weeklyMealPlanRepository
                         .findByIdWithItems(qry.getPlanId())
-                        .orElseThrow(() -> new IllegalArgumentException("PLAN_NOT_FOUND"));
+                        .orElseThrow(() -> new BizException(MealPlanErrorCode.PLAN_NOT_FOUND));
         Map<Long, Recipe> recipeMap = loadRecipeMapForPlan(plan);
         return MealPlanAssembler.toWeeklyMealPlanCO(plan, recipeMap);
     }
@@ -191,9 +193,9 @@ public class MealPlanAppService {
         MealPlanItem item =
                 weeklyMealPlanRepository
                         .findItemById(cmd.getItemId())
-                        .orElseThrow(() -> new IllegalArgumentException("ITEM_NOT_FOUND"));
+                        .orElseThrow(() -> new BizException(MealPlanErrorCode.ITEM_NOT_FOUND));
         if (!cmd.getPlanId().equals(item.getPlanId())) {
-            throw new IllegalArgumentException("ITEM_NOT_FOUND");
+            throw new BizException(MealPlanErrorCode.ITEM_NOT_FOUND);
         }
         item.setRecipeId(cmd.getRecipeId());
         weeklyMealPlanRepository.saveItem(item);
@@ -224,9 +226,9 @@ public class MealPlanAppService {
         MealPlanItem item =
                 weeklyMealPlanRepository
                         .findItemById(cmd.getItemId())
-                        .orElseThrow(() -> new IllegalArgumentException("ITEM_NOT_FOUND"));
+                        .orElseThrow(() -> new BizException(MealPlanErrorCode.ITEM_NOT_FOUND));
         if (!cmd.getPlanId().equals(item.getPlanId())) {
-            throw new IllegalArgumentException("ITEM_NOT_FOUND");
+            throw new BizException(MealPlanErrorCode.ITEM_NOT_FOUND);
         }
         assertPlanDraft(item.getPlanId());
 
@@ -234,9 +236,9 @@ public class MealPlanAppService {
         WeeklyMealPlan plan =
                 weeklyMealPlanRepository
                         .findByIdWithItems(item.getPlanId())
-                        .orElseThrow(() -> new IllegalArgumentException("PLAN_NOT_FOUND"));
+                        .orElseThrow(() -> new BizException(MealPlanErrorCode.PLAN_NOT_FOUND));
         if (plan.countItemsInSlot(item.getMealDate(), item.getMealType()) <= 1) {
-            throw new IllegalStateException("MEAL_PLAN_ITEM_LAST_ONE");
+            throw new BizException(MealPlanErrorCode.PLAN_ITEM_LAST_ONE);
         }
 
         weeklyMealPlanRepository.deleteItem(cmd.getItemId());
@@ -277,7 +279,7 @@ public class MealPlanAppService {
         WeeklyMealPlan plan =
                 weeklyMealPlanRepository
                         .findByIdWithItems(cmd.getPlanId())
-                        .orElseThrow(() -> new IllegalArgumentException("PLAN_NOT_FOUND"));
+                        .orElseThrow(() -> new BizException(MealPlanErrorCode.PLAN_NOT_FOUND));
 
         // 聚合根状态转换
         plan.confirm();
@@ -365,7 +367,7 @@ public class MealPlanAppService {
     private WeeklyMealPlan assertPlanOwnership(Long planId) {
         return weeklyMealPlanRepository
                 .findById(planId)
-                .orElseThrow(() -> new IllegalArgumentException("PLAN_NOT_FOUND"));
+                .orElseThrow(() -> new BizException(MealPlanErrorCode.PLAN_NOT_FOUND));
     }
 
     /** 获取当前家庭 ID。优先使用显式传入值，否则从认证上下文获取。 TODO: 接入 Spring Security 后从 SecurityContextHolder 获取。 */
@@ -373,7 +375,7 @@ public class MealPlanAppService {
         if (familyId != null) {
             return familyId;
         }
-        throw new IllegalStateException("FAMILY_ID_REQUIRED");
+        throw new BizException(MealPlanErrorCode.FAMILY_ID_REQUIRED);
     }
 
     private Map<Long, Recipe> loadRecipeMapForPlan(WeeklyMealPlan plan) {

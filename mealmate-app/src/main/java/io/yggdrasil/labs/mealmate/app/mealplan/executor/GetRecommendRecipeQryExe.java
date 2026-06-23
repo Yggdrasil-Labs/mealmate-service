@@ -8,6 +8,8 @@ import org.springframework.stereotype.Component;
 
 import io.yggdrasil.labs.mealmate.app.mealplan.dto.co.RecipeBriefCO;
 import io.yggdrasil.labs.mealmate.app.mealplan.dto.qry.GetRecommendRecipeQry;
+import io.yggdrasil.labs.mealmate.domain.common.exception.BizException;
+import io.yggdrasil.labs.mealmate.domain.mealplan.exception.MealPlanErrorCode;
 import io.yggdrasil.labs.mealmate.domain.mealplan.model.WeeklyMealPlan;
 import io.yggdrasil.labs.mealmate.domain.mealplan.repo.WeeklyMealPlanRepository;
 import io.yggdrasil.labs.mealmate.domain.mealplan.service.MealPlanRuleDomainService;
@@ -32,13 +34,13 @@ public class GetRecommendRecipeQryExe {
         WeeklyMealPlan plan =
                 weeklyMealPlanRepository
                         .findByIdWithItems(qry.getPlanId())
-                        .orElseThrow(() -> new IllegalArgumentException("MEAL_PLAN_NOT_FOUND"));
+                        .orElseThrow(() -> new BizException(MealPlanErrorCode.PLAN_NOT_FOUND));
 
         // 2. 校验条目存在
         plan.getItems().stream()
                 .filter(i -> i.getId().equals(qry.getItemId()))
                 .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("MEAL_PLAN_ITEM_NOT_FOUND"));
+                .orElseThrow(() -> new BizException(MealPlanErrorCode.ITEM_NOT_FOUND));
 
         // 3. 获取已用菜品 ID
         Set<Long> usedIds = ruleDomainService.getUsedRecipeIds(plan.getItems());

@@ -14,11 +14,21 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import com.alibaba.cola.dto.Response;
 
+import io.yggdrasil.labs.mealmate.domain.common.exception.BizException;
+
 /** 全局异常处理器。将业务异常转换为 COLA Response 格式，保证前端始终收到结构化错误信息。 */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
+    /** 业务异常（BizException），携带结构化错误码。 */
+    @ExceptionHandler(BizException.class)
+    @ResponseStatus(HttpStatus.UNPROCESSABLE_ENTITY)
+    public Response handleBizException(BizException e) {
+        log.warn("业务异常: [{}] {}", e.getErrCode(), e.getMessage());
+        return Response.buildFailure(e.getErrCode(), e.getMessage());
+    }
 
     /** 业务参数异常（如 PLAN_NOT_FOUND、ITEM_NOT_FOUND）。 */
     @ExceptionHandler(IllegalArgumentException.class)

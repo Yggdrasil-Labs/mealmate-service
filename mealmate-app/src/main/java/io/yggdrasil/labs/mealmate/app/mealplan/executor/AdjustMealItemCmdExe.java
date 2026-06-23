@@ -6,6 +6,8 @@ import org.springframework.stereotype.Component;
 
 import io.yggdrasil.labs.mealmate.app.mealplan.dto.cmd.AdjustMealItemCmd;
 import io.yggdrasil.labs.mealmate.app.mealplan.dto.co.MealPlanItemCO;
+import io.yggdrasil.labs.mealmate.domain.common.exception.BizException;
+import io.yggdrasil.labs.mealmate.domain.mealplan.exception.MealPlanErrorCode;
 import io.yggdrasil.labs.mealmate.domain.mealplan.model.MealPlanItem;
 import io.yggdrasil.labs.mealmate.domain.mealplan.model.MealPlanItemHistory;
 import io.yggdrasil.labs.mealmate.domain.mealplan.model.WeeklyMealPlan;
@@ -34,11 +36,11 @@ public class AdjustMealItemCmdExe {
         WeeklyMealPlan plan =
                 weeklyMealPlanRepository
                         .findByIdWithItems(cmd.getPlanId())
-                        .orElseThrow(() -> new IllegalArgumentException("MEAL_PLAN_NOT_FOUND"));
+                        .orElseThrow(() -> new BizException(MealPlanErrorCode.PLAN_NOT_FOUND));
 
         // 2. 校验计划状态为 DRAFT
         if (plan.getStatus() != PlanStatus.DRAFT) {
-            throw new IllegalStateException("MEAL_PLAN_FROZEN");
+            throw new BizException(MealPlanErrorCode.PLAN_FROZEN);
         }
 
         // 3. 定位条目
@@ -46,14 +48,13 @@ public class AdjustMealItemCmdExe {
                 plan.getItems().stream()
                         .filter(i -> i.getId().equals(cmd.getItemId()))
                         .findFirst()
-                        .orElseThrow(
-                                () -> new IllegalArgumentException("MEAL_PLAN_ITEM_NOT_FOUND"));
+                        .orElseThrow(() -> new BizException(MealPlanErrorCode.ITEM_NOT_FOUND));
 
         // 4. 校验新菜品存在
         Recipe recipe =
                 recipeRepository
                         .findById(cmd.getNewRecipeId())
-                        .orElseThrow(() -> new IllegalArgumentException("RECIPE_NOT_FOUND"));
+                        .orElseThrow(() -> new BizException(MealPlanErrorCode.ITEM_NOT_FOUND));
 
         // 5. 校验不重复
         ruleDomainService.validateNoDuplicate(

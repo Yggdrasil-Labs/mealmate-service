@@ -4,6 +4,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import io.yggdrasil.labs.mealmate.domain.common.exception.BizException;
+import io.yggdrasil.labs.mealmate.domain.mealplan.exception.MealPlanErrorCode;
 import io.yggdrasil.labs.mealmate.domain.mealplan.model.MealPlanItem;
 
 /** 周计划不重样规则领域服务：同 crowdType 同周内菜品不重复。 */
@@ -22,7 +24,7 @@ public class MealPlanRuleDomainService {
                 items.stream()
                         .filter(i -> i.getId().equals(currentItemId))
                         .findFirst()
-                        .orElseThrow();
+                        .orElseThrow(() -> new BizException(MealPlanErrorCode.ITEM_NOT_FOUND));
 
         boolean duplicate =
                 items.stream()
@@ -31,7 +33,7 @@ public class MealPlanRuleDomainService {
                         .anyMatch(i -> i.getRecipeId().equals(newRecipeId));
 
         if (duplicate) {
-            throw new IllegalArgumentException("RECIPE_DUPLICATE_IN_WEEK");
+            throw new BizException(MealPlanErrorCode.RECIPE_DUPLICATE_IN_WEEK);
         }
     }
 

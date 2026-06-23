@@ -9,6 +9,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import io.yggdrasil.labs.mealmate.domain.common.exception.BizException;
+import io.yggdrasil.labs.mealmate.domain.mealplan.exception.MealPlanErrorCode;
 import io.yggdrasil.labs.mealmate.domain.mealplan.model.MealPlanItem;
 import io.yggdrasil.labs.mealmate.domain.mealplan.model.WeeklyMealPlan;
 import io.yggdrasil.labs.mealmate.domain.mealplan.model.enums.MealPlanCrowdType;
@@ -38,7 +40,7 @@ public class WeekPlanGenerateDomainService {
     public WeeklyMealPlan generate(
             Long familyId, LocalDate weekStartDate, List<Recipe> candidates) {
         if (candidates == null || candidates.isEmpty()) {
-            throw new IllegalStateException("CANDIDATE_RECIPES_INSUFFICIENT");
+            throw new BizException(MealPlanErrorCode.CANDIDATE_RECIPES_INSUFFICIENT);
         }
 
         List<MealPlanItem> items = new ArrayList<>();
