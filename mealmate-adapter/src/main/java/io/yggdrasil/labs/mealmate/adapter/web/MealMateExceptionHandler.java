@@ -17,10 +17,10 @@ import com.alibaba.cola.dto.Response;
 import io.yggdrasil.labs.mealmate.domain.common.exception.BizException;
 
 /** 全局异常处理器。将业务异常转换为 COLA Response 格式，保证前端始终收到结构化错误信息。 */
-@RestControllerAdvice
-public class GlobalExceptionHandler {
+@RestControllerAdvice("io.yggdrasil.labs.mealmate")
+public class MealMateExceptionHandler {
 
-    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+    private static final Logger log = LoggerFactory.getLogger(MealMateExceptionHandler.class);
 
     /** 业务异常（BizException），携带结构化错误码。 */
     @ExceptionHandler(BizException.class)

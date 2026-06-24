@@ -91,7 +91,11 @@ public class ConfirmPlanCmdExe {
         if (recipeIds.isEmpty()) {
             return Collections.emptyMap();
         }
-        return recipeRepository.findByIds(recipeIds).stream()
+        // 确认计划需要完整 Recipe（含 ingredients）用于派生备菜和采购清单
+        return recipeIds.stream()
+                .map(recipeRepository::findById)
+                .filter(java.util.Optional::isPresent)
+                .map(java.util.Optional::get)
                 .collect(Collectors.toMap(Recipe::getId, Function.identity(), (a, b) -> a));
     }
 }
