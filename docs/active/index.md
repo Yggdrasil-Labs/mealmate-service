@@ -4,6 +4,7 @@
 
 | id | 需求名 | status | owner | tags | 路径 |
 |----|--------|--------|-------|------|------|
+| 1 | LLM 集成：智能录入菜品 & 智能生成饮食计划 | planning | yangyang | llm, ai, deepseek | `llm-integration/` |
 
 ## 如何添加新需求
 
