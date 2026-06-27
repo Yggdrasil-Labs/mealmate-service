@@ -147,7 +147,7 @@ class MealPlanExecutorTest {
 
         when(weeklyMealPlanRepository.findById(1L)).thenReturn(Optional.of(plan));
         when(weeklyMealPlanRepository.findByIdWithItems(1L)).thenReturn(Optional.of(plan));
-        when(recipeRepository.findByIds(any())).thenReturn(Collections.emptyList());
+        when(recipeRepository.findById(100L)).thenReturn(Optional.empty());
         when(prepPlanDeriveDomainService.derivePrepPlan(anyLong(), any(), any()))
                 .thenReturn(
                         PrepPlan.builder()
