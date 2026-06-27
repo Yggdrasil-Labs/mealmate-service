@@ -56,7 +56,14 @@ public class RedisAiSessionRepository implements AiSessionRepository {
 
     @Override
     public void update(AiSession session) {
-        save(session);
+        AiSession refreshed =
+                AiSession.builder()
+                        .sessionId(session.getSessionId())
+                        .messages(session.getMessages())
+                        .createdAt(session.getCreatedAt())
+                        .updatedAt(LocalDateTime.now())
+                        .build();
+        save(refreshed);
     }
 
     @Override

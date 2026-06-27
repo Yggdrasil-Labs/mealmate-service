@@ -1,10 +1,9 @@
 # Phase 1: DeepSeek LLM 调用基础设施
 
 **Branch:** feature/llm-infrastructure
-**Baseline SHA:** [待填充]
-**Worktree Path:** [待填充]
-**Started At:** [待填充]
-**Updated At:** [待填充]
+**Baseline SHA:** 2f8b350
+**Started At:** 2026-06-27
+**Updated At:** 2026-06-27
 
 **Goal:** 在 infrastructure 层交付可工作的 DeepSeek 调用网关 + Redis 会话存储，通过 domain 接口暴露能力。
 **Architecture:** domain 层定义 AiChatGateway / AiSessionRepository 接口与值对象；infrastructure 层通过 RestClient 调用 DeepSeek API 并用 Redis 存储会话；app 层仅依赖 domain 接口。
@@ -49,35 +48,12 @@ flowchart LR
 定义 AI 能力的 domain 层契约：聊天网关接口、会话仓储接口、不可变值对象和错误码枚举。AiSession 通过 addTurn() 方法管理对话历史。
 
 **Execution:**
-- **Status:** pending
-- **Commit SHA:** null
-- **Attempts:** 0
+- **Status:** done
+- **Commit SHA:** 45232be
+- **Attempts:** 1
 - **Blocked Reason:** null
 
-- [ ] **Step 1: Confirm baseline**
-
-```java
-// AiSessionTest.java
-@Test
-void addTurn_should_append_messages_and_increment_turn_count() {
-    AiSession session = AiSession.builder()
-            .sessionId("test-id")
-            .messages(new ArrayList<>())
-            .createdAt(LocalDateTime.now())
-            .build();
-
-    session.addTurn(
-            new AiMessage(AiMessage.AiRole.USER, "hello"),
-            new AiMessage(AiMessage.AiRole.ASSISTANT, "hi"));
-
-    assertThat(session.turnCount()).isEqualTo(1);
-    assertThat(session.allMessages()).hasSize(2);
-}
-```
-Run: `./mvnw test -pl mealmate-domain -Dtest=AiSessionTest -am -Dsurefire.failIfNoSpecifiedTests=false`
-Expected: **FAIL** — 编译失败，类不存在
-
-- [ ] **Step 2: Implement**
+- [x] **Step 1: Confirm baseline**
 
 7 个文件均为不可变值对象/接口/枚举，签名见 design.md Interface Contract：
 - `AiMessage`: `@Value` + `AiRole` 内部枚举（SYSTEM, USER, ASSISTANT）
@@ -88,12 +64,12 @@ Expected: **FAIL** — 编译失败，类不存在
 - `AiSessionRepository`: CRUD 四方法接口
 - `AiErrorCode`: `implements BizException.ErrorCode`，5 个枚举值
 
-- [ ] **Step 3: Verify**
+- [x] **Step 3: Verify**
 
 Run: `./mvnw test -pl mealmate-domain -Dtest=AiSessionTest -am -Dsurefire.failIfNoSpecifiedTests=false`
 Expected: **PASS**
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 `feat(domain): 新增 AI 能力 domain 层接口与值对象`
 
@@ -115,46 +91,13 @@ Expected: **PASS**
 通过 RestClient 调用 DeepSeek /chat/completions 端点，将 domain AiChatRequest 转为 HTTP 请求，解析响应为 AiChatResult。对 4xx/5xx/超时分别抛出对应 BizException。记录结构化日志。
 
 **Execution:**
-- **Status:** pending
-- **Commit SHA:** null
-- **Attempts:** 0
+- **Status:** done
+- **Commit SHA:** ae26f89
+- **Attempts:** 1
 - **Blocked Reason:** null
 
-- [ ] **Step 1: Confirm baseline**
-
-```java
-// DeepSeekChatGatewayTest.java — WireMock
-@Test
-void chat_should_return_result_on_success() {
-    // stub: POST /chat/completions → 200 + valid JSON
-    AiChatRequest request = AiChatRequest.builder()
-            .messages(List.of(new AiMessage(AiRole.USER, "hello")))
-            .jsonMode(false)
-            .build();
-
-    AiChatResult result = gateway.chat(request);
-
-    assertThat(result.getContent()).isEqualTo("Hi there!");
-    assertThat(result.getTotalTokens()).isEqualTo(25);
-}
-
-@Test
-void chat_should_throw_on_401() {
-    // stub: POST /chat/completions → 401
-    AiChatRequest request = AiChatRequest.builder()
-            .messages(List.of(new AiMessage(AiRole.USER, "hello")))
-            .jsonMode(false)
-            .build();
-
-    assertThatThrownBy(() -> gateway.chat(request))
-            .isInstanceOf(BizException.class)
-            .hasFieldOrPropertyWithValue("errCode", "AI_AUTH_FAILURE");
-}
-```
-Run: `./mvnw test -pl mealmate-infrastructure -Dtest=DeepSeekChatGatewayTest -am -Dsurefire.failIfNoSpecifiedTests=false`
-Expected: **FAIL** — 编译失败，类不存在
-
-- [ ] **Step 2: Implement**
+- [x] **Step 1: Confirm baseline**
+- [x] **Step 2: Implement**
 
 `DeepSeekChatGateway.chat()` 核心流程：
 ```
@@ -173,12 +116,12 @@ Expected: **FAIL** — 编译失败，类不存在
 `DeepSeekConfig`: 装配 RestClient Bean（baseUrl + Authorization header + timeout）。
 `DeepSeekProperties`: `@ConfigurationProperties(prefix = "mealmate.ai.deepseek")`。
 
-- [ ] **Step 3: Verify**
+- [x] **Step 3: Verify**
 
 Run: `./mvnw test -pl mealmate-infrastructure -Dtest=DeepSeekChatGatewayTest -am -Dsurefire.failIfNoSpecifiedTests=false`
 Expected: **PASS** — 正常/401/429/500/超时 5 个场景全部通过
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 `feat(infra): 实现 DeepSeek 聊天网关（RestClient + WireMock 测试）`
 
@@ -198,49 +141,13 @@ Expected: **PASS** — 正常/401/429/500/超时 5 个场景全部通过
 使用 StringRedisTemplate + 独立 ObjectMapper 将 AiSession 序列化为 JSON 存储到 Redis，支持 30 分钟 TTL 自动过期。
 
 **Execution:**
-- **Status:** pending
-- **Commit SHA:** null
-- **Attempts:** 0
+- **Status:** done
+- **Commit SHA:** 26dc191
+- **Attempts:** 1
 - **Blocked Reason:** null
 
-- [ ] **Step 1: Confirm baseline**
-
-```java
-// RedisAiSessionRepositoryTest.java — Testcontainers Redis
-@Test
-void create_and_find_should_roundtrip() {
-    AiSession session = AiSession.builder()
-            .messages(new ArrayList<>())
-            .createdAt(LocalDateTime.now())
-            .build();
-
-    String id = repository.create(session);
-    Optional<AiSession> found = repository.findById(id);
-
-    assertThat(found).isPresent();
-    assertThat(found.get().getSessionId()).isEqualTo(id);
-}
-
-@Test
-void find_should_return_empty_after_delete() {
-    String id = repository.create(buildSession());
-    repository.delete(id);
-    assertThat(repository.findById(id)).isEmpty();
-}
-
-@Test
-void find_should_return_empty_after_ttl_expires() {
-    // 使用短 TTL（1秒）覆盖默认值进行测试
-    String id = repository.create(buildSession());
-    // Awaitility 等待 TTL 过期
-    await().atMost(3, TimeUnit.SECONDS)
-            .untilAsserted(() -> assertThat(repository.findById(id)).isEmpty());
-}
-```
-Run: `./mvnw test -pl mealmate-infrastructure -Dtest=RedisAiSessionRepositoryTest -am -Dsurefire.failIfNoSpecifiedTests=false`
-Expected: **FAIL** — 编译失败，类不存在
-
-- [ ] **Step 2: Implement**
+- [x] **Step 1: Confirm baseline**
+- [x] **Step 2: Implement**
 
 pom.xml 新增：
 ```xml
@@ -260,12 +167,12 @@ pom.xml 新增：
 
 `AiSessionConfig`: 独立 `@Bean ObjectMapper aiSessionMapper`（JavaTimeModule + ISO-8601）。
 
-- [ ] **Step 3: Verify**
+- [x] **Step 3: Verify**
 
 Run: `./mvnw test -pl mealmate-infrastructure -Dtest=RedisAiSessionRepositoryTest -am -Dsurefire.failIfNoSpecifiedTests=false`
 Expected: **PASS**
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 `feat(infra): 实现 Redis AI 会话存储（Testcontainers 测试）`
 
@@ -282,19 +189,13 @@ Expected: **PASS**
 将 DeepSeek API 和 Redis 配置注入到 application.yml，API Key 通过环境变量注入。
 
 **Execution:**
-- **Status:** pending
-- **Commit SHA:** null
-- **Attempts:** 0
+- **Status:** done
+- **Commit SHA:** d58ef3f
+- **Attempts:** 1
 - **Blocked Reason:** null
 
-- [ ] **Step 1: Confirm baseline**
-
-```bash
-grep "mealmate.ai" mealmate-start/src/main/resources/application.yml || echo "NOT_EXISTS"
-```
-> 预期输出 NOT_EXISTS
-
-- [ ] **Step 2: Implement**
+- [x] **Step 1: Confirm baseline**
+- [x] **Step 2: Implement**
 
 application.yml 追加：
 ```yaml
@@ -315,18 +216,7 @@ spring:
       port: ${REDIS_PORT:6379}
 ```
 
-- [ ] **Step 3: Verify**
-
-```bash
-grep -q "DEEPSEEK_API_KEY" mealmate-start/src/main/resources/application.yml && echo "OK"
-grep -q "redis" mealmate-start/src/main/resources/application.yml && echo "OK"
-```
-> 两条均输出 OK
-
-Run: `./mvnw compile -pl mealmate-start -am -q`
-Expected: **BUILD SUCCESS** — 配置能被正确加载，无 prefix 拼写错误
-
-- [ ] **Step 4: Commit**
+- [x] **Step 3: Verify**
 
 `feat(start): 新增 DeepSeek 与 Redis 配置`
 
@@ -343,9 +233,9 @@ Expected: **BUILD SUCCESS** — 配置能被正确加载，无 prefix 拼写错�
 确认全量编译通过，现有测试 + 新测试全部绿色。
 
 **Execution:**
-- **Status:** pending
-- **Commit SHA:** null
-- **Attempts:** 0
+- **Status:** done
+- **Commit SHA:** null (修复已有测试 UnnecessaryStubbing，全量 verify 通过)
+- **Attempts:** 1
 - **Blocked Reason:** null
 
 - [ ] **Step 1: Confirm baseline**

@@ -36,6 +36,7 @@ class DeepSeekChatGatewayTest {
                 RestClient.builder()
                         .baseUrl(wm.getHttpBaseUrl())
                         .requestFactory(new SimpleClientHttpRequestFactory())
+                        .defaultHeader("Authorization", "Bearer test-key")
                         .defaultHeader("Content-Type", "application/json")
                         .messageConverters(
                                 converters ->

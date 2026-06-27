@@ -34,7 +34,6 @@ public class DeepSeekChatGateway implements AiChatGateway {
                     deepSeekRestClient
                             .post()
                             .uri("/chat/completions")
-                            .header("Authorization", "Bearer " + properties.getApiKey())
                             .body(body)
                             .retrieve()
                             .body(ChatCompletionResponse.class);
@@ -52,8 +51,12 @@ public class DeepSeekChatGateway implements AiChatGateway {
 
         } catch (HttpStatusCodeException e) {
             long latency = System.currentTimeMillis() - start;
-            log.error(
-                    "[DeepSeek] ERROR status={} latency={}ms", e.getStatusCode().value(), latency);
+            int status = e.getStatusCode().value();
+            if (status == 429) {
+                log.warn("[DeepSeek] RATE_LIMITED latency={}ms", latency);
+            } else {
+                log.error("[DeepSeek] ERROR status={} latency={}ms", status, latency);
+            }
             throw mapException(e);
         } catch (ResourceAccessException e) {
             long latency = System.currentTimeMillis() - start;

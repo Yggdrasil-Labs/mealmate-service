@@ -20,6 +20,7 @@ public class DeepSeekConfig {
 
         return RestClient.builder()
                 .baseUrl(properties.getBaseUrl())
+                .defaultHeader("Authorization", "Bearer " + properties.getApiKey())
                 .defaultHeader("Content-Type", "application/json")
                 .requestFactory(factory)
                 .build();

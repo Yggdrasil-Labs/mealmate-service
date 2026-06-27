@@ -3,6 +3,10 @@ spring:
     name: mealmate-service
   profiles:
     active: local
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
 
 # AI 配置
 mealmate:
