@@ -79,10 +79,15 @@ public class DeepSeekChatGateway implements AiChatGateway {
                         ? new ChatCompletionRequest.ResponseFormat("json_object")
                         : null;
 
+        // JSON mode 需要关闭 thinking 以获得干净的 content 输出
+        ChatCompletionRequest.Thinking thinking =
+                request.isJsonMode() ? new ChatCompletionRequest.Thinking("disabled") : null;
+
         return ChatCompletionRequest.builder()
                 .model(properties.getModel())
                 .messages(messages)
                 .responseFormat(format)
+                .thinking(thinking)
                 .temperature(
                         request.getTemperature() != null
                                 ? request.getTemperature()
@@ -100,8 +105,19 @@ public class DeepSeekChatGateway implements AiChatGateway {
         }
         ChatCompletionResponse.Choice choice = response.getChoices().get(0);
         ChatCompletionResponse.Usage usage = response.getUsage();
+        ChatCompletionResponse.MessageItem msg = choice.getMessage();
+
+        // DeepSeek 思考模型可能把内容放在 reasoning_content 而非 content
+        String content = "";
+        if (msg != null) {
+            content =
+                    (msg.getContent() != null && !msg.getContent().isBlank())
+                            ? msg.getContent()
+                            : (msg.getReasoningContent() != null ? msg.getReasoningContent() : "");
+        }
+
         return AiChatResult.builder()
-                .content(choice.getMessage() != null ? choice.getMessage().getContent() : "")
+                .content(content)
                 .finishReason(choice.getFinishReason())
                 .promptTokens(usage != null ? usage.getPromptTokens() : 0)
                 .completionTokens(usage != null ? usage.getCompletionTokens() : 0)
