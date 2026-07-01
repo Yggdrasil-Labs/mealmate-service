@@ -4,7 +4,7 @@
 **Baseline SHA:** 6e7166ffeb0bf012913f2e6abb27204888ee8feb
 **Worktree Path:** /home/yangyang/workspace/codes/Yggdrasil-Labs/mealmate-project/mealmate-service
 **Started At:** 2026-07-01T22:26:53+08:00
-**Updated At:** 2026-07-01T23:15:00+08:00
+**Updated At:** 2026-07-02T07:40:00+08:00
 
 **Goal:** 用户通过自然语言描述菜品 → LLM 解析为结构化数据 → 多轮补全 → 确认入库
 **Architecture:** Domain 层定义接口（PromptSanitizer, RecipeParseCacheRepository）；Infrastructure 层提供 DeepSeek + Redis 实现；App 层编排多轮对话状态机、merge 逻辑、confirm 流程；Adapter 层暴露 REST API
@@ -668,12 +668,12 @@ feat(adapter): add AiRecipeController and integration test
 - [ ] AC1: 点击"AI 录入"按钮 → 抽屉弹出，输入框可用，确认按钮 disabled（status ≠ READY_TO_CONFIRM）
 - [ ] AC2: 输入描述发送后 → 消息列表追加 user + assistant 消息，预览卡片更新 parsed 数据
 - [ ] AC3: 确认按钮在 status=READY_TO_CONFIRM 时 enabled；点击后调用 confirm API → 成功后关闭抽屉 + 列表刷新可见新菜品
-- [ ] AC4: TypeScript 编译 + vue-tsc 无类型错误
+- [x] AC4: TypeScript 编译 + vue-tsc 无类型错误
 
 **Execution:**
-- **Status:** pending
-- **Commit SHA:** null
-- **Attempts:** 0
+- **Status:** done
+- **Commit SHA:** be3b4fc
+- **Attempts:** 1
 - **Blocked Reason:** null
 
 **Step 1: Red**
