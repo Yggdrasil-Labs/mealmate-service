@@ -1,10 +1,10 @@
 # AI 智能录入菜品 — Implementation Plan
 
-**Branch:** [待填充]
-**Baseline SHA:** [待填充]
-**Worktree Path:** [待填充]
-**Started At:** 2026-06-29
-**Updated At:** 2026-06-29
+**Branch:** feat/ai-recipe-parse
+**Baseline SHA:** 6e7166ffeb0bf012913f2e6abb27204888ee8feb
+**Worktree Path:** /home/yangyang/workspace/codes/Yggdrasil-Labs/mealmate-project/mealmate-service
+**Started At:** 2026-07-01T22:26:53+08:00
+**Updated At:** 2026-07-01T23:15:00+08:00
 
 **Goal:** 用户通过自然语言描述菜品 → LLM 解析为结构化数据 → 多轮补全 → 确认入库
 **Architecture:** Domain 层定义接口（PromptSanitizer, RecipeParseCacheRepository）；Infrastructure 层提供 DeepSeek + Redis 实现；App 层编排多轮对话状态机、merge 逻辑、confirm 流程；Adapter 层暴露 REST API
@@ -53,14 +53,14 @@ flowchart LR
 定义 Phase 2 所需的领域类型和接口契约。RecipeParseStatus 枚举表达会话状态流转。RecipeParsedData 为渐进填充的值对象（用 String 承接枚举字段，允许 null）。RecipeParseCacheRepository 和 PromptSanitizer 为 domain 层接口，infrastructure 层实现。
 
 **Acceptance Criteria:**
-- [ ] AC1: `mealmate-domain` 编译通过，所有新增类型（RecipeParseStatus, RecipeParsedData, RecipeParseCache, RecipeParseCacheRepository, PromptSanitizer）可被其他模块引用
-- [ ] AC2: `AiErrorCode` 枚举包含 `AI_RECIPE_INCOMPLETE` 值，code 和 message 字段正确
-- [ ] AC3: `RecipeParseCacheRepository` 接口签名与 Design §7.1 一致：`save(String, RecipeParseCache)`, `findBySessionId(String) → Optional`, `updateTtl(String, Duration)`
+- [x] AC1: `mealmate-domain` 编译通过，所有新增类型（RecipeParseStatus, RecipeParsedData, RecipeParseCache, RecipeParseCacheRepository, PromptSanitizer）可被其他模块引用
+- [x] AC2: `AiErrorCode` 枚举包含 `AI_RECIPE_INCOMPLETE` 值，code 和 message 字段正确
+- [x] AC3: `RecipeParseCacheRepository` 接口签名与 Design §7.1 一致：`save(String, RecipeParseCache)`, `findBySessionId(String) → Optional`, `updateTtl(String, Duration)`
 
 **Execution:**
-- **Status:** pending
-- **Commit SHA:** null
-- **Attempts:** 0
+- **Status:** done
+- **Commit SHA:** 977844a
+- **Attempts:** 1
 - **Blocked Reason:** null
 
 **Step 1: Red**
@@ -147,15 +147,15 @@ feat(domain): add AI recipe parse domain types and interfaces
 定义 App 层命令/CO 类型；CreateRecipeCmd 新增 sourceType 字段（可空，非空时 CreateRecipeCmdExe 直接使用）；PromptBuilder 负责从 classpath 加载 system prompt 模板 + 构建 messages（含 accumulatedParsed 摘要注入 + 历史拼接）。PromptBuilder 单测验证消息构建逻辑。
 
 **Acceptance Criteria:**
-- [ ] AC1: `PromptBuilder.buildMessages()` 首轮调用时返回 [SYSTEM, USER] 顺序，USER content 包含用户原始输入
-- [ ] AC2: 多轮调用时 accumulated 摘要注入到 USER content 前缀，历史消息保持时序
-- [ ] AC3: `CreateRecipeCmd.sourceType` 字段存在且无 @NotNull/@NotBlank 注解（可空）
-- [ ] AC4: `mealmate-app` 编译通过，所有新增 DTO/CO 类型可被 Adapter 层引用
+- [x] AC1: `PromptBuilder.buildMessages()` 首轮调用时返回 [SYSTEM, USER] 顺序，USER content 包含用户原始输入
+- [x] AC2: 多轮调用时 accumulated 摘要注入到 USER content 前缀，历史消息保持时序
+- [x] AC3: `CreateRecipeCmd.sourceType` 字段存在且无 @NotNull/@NotBlank 注解（可空）
+- [x] AC4: `mealmate-app` 编译通过，所有新增 DTO/CO 类型可被 Adapter 层引用
 
 **Execution:**
-- **Status:** pending
-- **Commit SHA:** null
-- **Attempts:** 0
+- **Status:** done
+- **Commit SHA:** 42da04c
+- **Attempts:** 1
 - **Blocked Reason:** null
 
 **Step 1: Red**
@@ -268,14 +268,14 @@ feat(app): add AI recipe parse DTOs, PromptBuilder, and system prompt template
 DefaultPromptSanitizer 实现 domain 层 PromptSanitizer 接口：截断 2000 chars、移除 markdown 代码块、过滤 injection 模式。RedisRecipeParseCacheRepository 实现 RecipeParseCacheRepository：使用 Phase 1 已有的 `aiSessionMapper` ObjectMapper 序列化 RecipeParseCache，key 格式 `ai:recipe-parsed:{sessionId}`，TTL 30min，confirm 后 24h。
 
 **Acceptance Criteria:**
-- [ ] AC1: `DefaultPromptSanitizer.sanitize()` 截断 >2000 chars 输入，移除 ``` 代码块，过滤 injection pattern（ignore previous / system: / 你现在是 等）
-- [ ] AC2: `RedisRecipeParseCacheRepository` 的 save → findBySessionId 往返正确：序列化 + 反序列化后 accumulatingParsed / status / confirmedRecipeId 字段一致
-- [ ] AC3: `mealmate-infrastructure` 编译通过，两个实现类正确 implements 对应 domain 接口
+- [x] AC1: `DefaultPromptSanitizer.sanitize()` 截断 >2000 chars 输入，移除 ``` 代码块，过滤 injection pattern（ignore previous / system: / 你现在是 等）
+- [x] AC2: `RedisRecipeParseCacheRepository` 的 save → findBySessionId 往返正确：序列化 + 反序列化后 accumulatingParsed / status / confirmedRecipeId 字段一致
+- [x] AC3: `mealmate-infrastructure` 编译通过，两个实现类正确 implements 对应 domain 接口
 
 **Execution:**
-- **Status:** pending
-- **Commit SHA:** null
-- **Attempts:** 0
+- **Status:** done
+- **Commit SHA:** 7fee6cb
+- **Attempts:** 1
 - **Blocked Reason:** null
 
 **Step 1: Red**
@@ -398,17 +398,17 @@ feat(infra): add DefaultPromptSanitizer and RedisRecipeParseCacheRepository
 AiRecipeAppService 作为 facade，遵循 Controller → AppService → Executor 模式。AiRecipeParseCmdExe 编排多轮对话：加载 session/cache → 清洗输入 → 构建 messages → 调用 LLM → 解析 JSON → merge accumulatedParsed → determineStatus → 持久化。AiRecipeConfirmCmdExe：幂等检查 → RecipeParsedData 转 CreateRecipeCmd → 设置 sourceType=AI_GENERATED → 委托入库 → 更新 cache。CreateRecipeCmdExe 修改 1 行：sourceType 条件判断。单测 Mock 所有外部依赖，验证状态机、merge 逻辑、幂等、校验失败。
 
 **Acceptance Criteria:**
-- [ ] AC1: 首次 chat → REFINING（有 name + ingredients，无 steps）；补充 steps 后 → READY_TO_CONFIRM（merge 后 steps 非 null）
-- [ ] AC2: `steps == null` → REFINING；`steps == []` → READY_TO_CONFIRM；`name == null` → PARSING
-- [ ] AC3: LLM 返回 invalid JSON → 保留 accumulatedParsed，返回错误 reply，status 不变
-- [ ] AC4: 第 10 轮满足 READY_TO_CONFIRM → 返回强制确认提示；不满足 → REFINING + 提示重新开始
-- [ ] AC5: confirm 后重复 confirm → 幂等返回相同 recipeId（验证 CreateRecipeCmdExe 只调用 1 次）
-- [ ] AC6: confirm 时 recipe 不完整（name null）→ BizException(AI_RECIPE_INCOMPLETE)
+- [x] AC1: 首次 chat → REFINING（有 name + ingredients，无 steps）；补充 steps 后 → READY_TO_CONFIRM（merge 后 steps 非 null）
+- [x] AC2: `steps == null` → REFINING；`steps == []` → READY_TO_CONFIRM；`name == null` → PARSING
+- [x] AC3: LLM 返回 invalid JSON → 保留 accumulatedParsed，返回错误 reply，status 不变
+- [x] AC4: 第 10 轮满足 READY_TO_CONFIRM → 返回强制确认提示；不满足 → REFINING + 提示重新开始
+- [x] AC5: confirm 后重复 confirm → 幂等返回相同 recipeId（验证 CreateRecipeCmdExe 只调用 1 次）
+- [x] AC6: confirm 时 recipe 不完整（name null）→ BizException(AI_RECIPE_INCOMPLETE)
 
 **Execution:**
-- **Status:** pending
-- **Commit SHA:** null
-- **Attempts:** 0
+- **Status:** done
+- **Commit SHA:** 4d23c06
+- **Attempts:** 1
 - **Blocked Reason:** null
 
 **Step 1: Red**
@@ -587,14 +587,14 @@ feat(app): add AI recipe parse and confirm executors with state machine
 AiRecipeController 暴露 `/api/ai/recipes/chat` 和 `/api/ai/recipes/confirm` 两个 POST 端点，遵循项目 COLA 模式（Controller → AppService → Executor），返回 SingleResponse 包装。集成测试用 WireMock 模拟 DeepSeek + Redis 真实交互，验证 chat+confirm 全链路。
 
 **Acceptance Criteria:**
-- [ ] AC1: `POST /api/ai/recipes/chat`（新会话）→ 200 + `SingleResponse<AiRecipeParseResultCO>` 含 sessionId、status=REFINING、parsed 数据
-- [ ] AC2: `POST /api/ai/recipes/chat`（已有会话）→ 200 + merge 后的累积 parsed
-- [ ] AC3: `POST /api/ai/recipes/confirm` → 200 + recipeId；GET /api/recipes/{recipeId} → 200 菜品可见
+- [x] AC1: `POST /api/ai/recipes/chat`（新会话）→ 200 + `SingleResponse<AiRecipeParseResultCO>` 含 sessionId、status=REFINING、parsed 数据
+- [x] AC2: `POST /api/ai/recipes/chat`（已有会话）→ 200 + merge 后的累积 parsed
+- [x] AC3: `POST /api/ai/recipes/confirm` → 200 + recipeId；GET /api/recipes/{recipeId} → 200 菜品可见
 
 **Execution:**
-- **Status:** pending
-- **Commit SHA:** null
-- **Attempts:** 0
+- **Status:** done
+- **Commit SHA:** 7b5a5dc
+- **Attempts:** 1
 - **Blocked Reason:** null
 
 **Step 1: Red**
