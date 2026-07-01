@@ -9,6 +9,7 @@ public enum AiErrorCode implements BizException.ErrorCode {
     AI_SERVICE_UNAVAILABLE("AI_SERVICE_UNAVAILABLE", "AI 服务暂不可用"),
     AI_RESPONSE_INVALID("AI_RESPONSE_INVALID", "AI 响应格式异常"),
     AI_SESSION_NOT_FOUND("AI_SESSION_NOT_FOUND", "会话不存在或已过期"),
+    AI_RECIPE_INCOMPLETE("AI_RECIPE_INCOMPLETE", "菜品信息不完整，请补充必填字段"),
     ;
 
     private final String code;
