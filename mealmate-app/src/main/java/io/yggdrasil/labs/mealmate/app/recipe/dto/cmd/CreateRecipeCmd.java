@@ -8,6 +8,7 @@ import jakarta.validation.constraints.NotNull;
 
 import io.yggdrasil.labs.mealmate.domain.recipe.model.enums.CrowdTag;
 import io.yggdrasil.labs.mealmate.domain.recipe.model.enums.DifficultyLevel;
+import io.yggdrasil.labs.mealmate.domain.recipe.model.enums.RecipeSourceType;
 import io.yggdrasil.labs.mealmate.domain.recipe.model.enums.RecipeType;
 import io.yggdrasil.labs.mealmate.domain.recipe.model.enums.SeasonTag;
 import lombok.AllArgsConstructor;
@@ -36,4 +37,7 @@ public class CreateRecipeCmd {
     @Valid private List<RecipeStepItemCmd> steps;
 
     @Valid private NutritionFactCmd nutritionFact;
+
+    /** 菜品来源类型。AI 录入时由 Executor 自动设置，可空 */
+    private RecipeSourceType sourceType;
 }
