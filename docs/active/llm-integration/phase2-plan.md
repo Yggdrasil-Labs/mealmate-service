@@ -4,7 +4,7 @@
 **Baseline SHA:** 6e7166ffeb0bf012913f2e6abb27204888ee8feb
 **Worktree Path:** /home/yangyang/workspace/codes/Yggdrasil-Labs/mealmate-project/mealmate-service
 **Started At:** 2026-07-01T22:26:53+08:00
-**Updated At:** 2026-07-02T07:40:00+08:00
+**Updated At:** 2026-07-02T07:45:00+08:00
 
 **Goal:** 用户通过自然语言描述菜品 → LLM 解析为结构化数据 → 多轮补全 → 确认入库
 **Architecture:** Domain 层定义接口（PromptSanitizer, RecipeParseCacheRepository）；Infrastructure 层提供 DeepSeek + Redis 实现；App 层编排多轮对话状态机、merge 逻辑、confirm 流程；Adapter 层暴露 REST API
@@ -790,9 +790,9 @@ E2E 覆盖完整用户旅程：打开菜品页 → 点击 AI 录入 → 输入�
 - [ ] AC3: AI 服务不可用时 → 前端显示错误提示 + 手动录入引导可见（降级验证）
 
 **Execution:**
-- **Status:** pending
-- **Commit SHA:** null
-- **Attempts:** 0
+- **Status:** done
+- **Commit SHA:** 87a160b
+- **Attempts:** 1
 - **Blocked Reason:** null
 
 **Step 1: Red**
