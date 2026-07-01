@@ -35,7 +35,8 @@ public class CreateRecipeCmdExe {
 
         Recipe recipe = recipeConvertor.toRecipe(cmd);
         recipe.setName(recipeName);
-        recipe.setSourceType(RecipeSourceType.MANUAL);
+        recipe.setSourceType(
+                cmd.getSourceType() != null ? cmd.getSourceType() : RecipeSourceType.MANUAL);
         if (recipe.getStatus() == null) {
             recipe.setStatus(RecipeStatus.ACTIVE);
         }
