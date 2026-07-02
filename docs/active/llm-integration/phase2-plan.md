@@ -4,7 +4,7 @@
 **Baseline SHA:** 6e7166ffeb0bf012913f2e6abb27204888ee8feb
 **Worktree Path:** /home/yangyang/workspace/codes/Yggdrasil-Labs/mealmate-project/mealmate-service
 **Started At:** 2026-07-01T22:26:53+08:00
-**Updated At:** 2026-07-02T07:45:00+08:00
+**Updated At:** 2026-07-02T08:17:00+08:00
 
 **Goal:** 用户通过自然语言描述菜品 → LLM 解析为结构化数据 → 多轮补全 → 确认入库
 **Architecture:** Domain 层定义接口（PromptSanitizer, RecipeParseCacheRepository）；Infrastructure 层提供 DeepSeek + Redis 实现；App 层编排多轮对话状态机、merge 逻辑、confirm 流程；Adapter 层暴露 REST API
@@ -665,9 +665,9 @@ feat(adapter): add AiRecipeController and integration test
 菜品列表页增加"AI 录入"按钮 → 弹出抽屉包含对话消息列表 + 输入框 + 结构化预览卡片 + 确认按钮。多轮对话 composable 管理 sessionId / 消息列表 / loading 状态。用户可编辑 preview 后确认提交。
 
 **Acceptance Criteria:**
-- [ ] AC1: 点击"AI 录入"按钮 → 抽屉弹出，输入框可用，确认按钮 disabled（status ≠ READY_TO_CONFIRM）
-- [ ] AC2: 输入描述发送后 → 消息列表追加 user + assistant 消息，预览卡片更新 parsed 数据
-- [ ] AC3: 确认按钮在 status=READY_TO_CONFIRM 时 enabled；点击后调用 confirm API → 成功后关闭抽屉 + 列表刷新可见新菜品
+- [x] AC1: 点击"AI 录入"按钮 → 抽屉弹出，输入框可用，确认按钮 disabled（status ≠ READY_TO_CONFIRM）
+- [x] AC2: 输入描述发送后 → 消息列表追加 user + assistant 消息，预览卡片更新 parsed 数据
+- [x] AC3: 确认按钮在 status=READY_TO_CONFIRM 时 enabled；点击后调用 confirm API → 成功后关闭抽屉 + 列表刷新可见新菜品
 - [x] AC4: TypeScript 编译 + vue-tsc 无类型错误
 
 **Execution:**
@@ -785,9 +785,9 @@ feat(web): add AI recipe chat drawer and useAiChat composable
 E2E 覆盖完整用户旅程：打开菜品页 → 点击 AI 录入 → 输入描述 → 验证解析结果 → 补充步骤 → 确认入库 → 列表可见。使用 Playwright + fixture 固化 AI 响应（或 mock DeepSeek endpoint）。
 
 **Acceptance Criteria:**
-- [ ] AC1: 完整对话流程（首次描述 → 补充步骤 → 确认）→ 菜品出现在列表中，全流程无报错
-- [ ] AC2: 重复 confirm → 菜品列表不出现重复记录（幂等验证）
-- [ ] AC3: AI 服务不可用时 → 前端显示错误提示 + 手动录入引导可见（降级验证）
+- [x] AC1: 完整对话流程（首次描述 → 补充步骤 → 确认）→ 菜品出现在列表中，全流程无报错
+- [x] AC2: 重复 confirm → 菜品列表不出现重复记录（幂等验证）
+- [x] AC3: AI 服务不可用时 → 前端显示错误提示 + 手动录入引导可见（降级验证）
 
 **Execution:**
 - **Status:** done
@@ -866,12 +866,12 @@ test(e2e): add AI recipe parse end-to-end test suite
 
 以下为功能级别验收条件，所有 Task 完成后逐一验证。与 per-Task AC 不重复——这些验证"整个功能能正常工作"。
 
-- [ ] AC-F1: 用户首次自然语言描述菜品 → 返回结构化解析数据 + sessionId + 状态 REFINING + 补充建议
-- [ ] AC-F2: 同一会话多轮补充 → 数据累积不丢失，最终达到 READY_TO_CONFIRM 后可确认入库
-- [ ] AC-F3: 确认入库后菜品在列表中可见，重复 confirm 幂等返回相同 recipeId
-- [ ] AC-F4: 会话超过 30 分钟无活动 → 再次访问返回"会话不存在或已过期"
-- [ ] AC-F5: LLM 服务不可用或返回格式异常 → 返回对应错误码/提示，已有菜品 CRUD 不受影响
-- [ ] AC-F6: 现有测试套件无回归（`./mvnw test` 全部通过）
+- [x] AC-F1: 用户首次自然语言描述菜品 → 返回结构化解析数据 + sessionId + 状态 REFINING + 补充建议
+- [x] AC-F2: 同一会话多轮补充 → 数据累积不丢失，最终达到 READY_TO_CONFIRM 后可确认入库
+- [x] AC-F3: 确认入库后菜品在列表中可见，重复 confirm 幂等返回相同 recipeId
+- [x] AC-F4: 会话超过 30 分钟无活动 → 再次访问返回"会话不存在或已过期"
+- [x] AC-F5: LLM 服务不可用或返回格式异常 → 返回对应错误码/提示，已有菜品 CRUD 不受影响
+- [x] AC-F6: 现有测试套件无回归（`./mvnw test` 全部通过）
 
 > AC-F1~F3 对应 Spec [首次菜品解析](phase2-spec.md#behavior-首次菜品解析) + [多轮对话补充](phase2-spec.md#behavior-多轮对话补充) + [确认菜品入库](phase2-spec.md#behavior-确认菜品入库) 的 Then 子句。
 > AC-F4~F5 对应 Spec [会话生命周期](phase2-spec.md#behavior-会话生命周期) + [AI 服务异常降级](phase2-spec.md#behavior-ai-服务异常降级) 的 Then 子句。
