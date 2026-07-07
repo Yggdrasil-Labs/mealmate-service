@@ -6,7 +6,8 @@ import lombok.Getter;
 @Getter
 public enum PlanSource {
     MANUAL("MANUAL"),
-    AI_GENERATED("AI_GENERATED");
+    AI_GENERATED("AI_GENERATED"),
+    RULE_ENGINE("RULE_ENGINE");
 
     private final String code;
 

@@ -79,7 +79,7 @@ public class WeekPlanGenerateDomainService {
                 .weekStartDate(weekStartDate)
                 .weekEndDate(weekStartDate.plusDays(6))
                 .status(PlanStatus.DRAFT)
-                .planSource(PlanSource.AI_GENERATED)
+                .planSource(PlanSource.RULE_ENGINE)
                 .generatedTime(LocalDateTime.now())
                 .items(items)
                 .build();
