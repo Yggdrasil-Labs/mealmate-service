@@ -3,7 +3,7 @@
 **Branch:** feat/ai-meal-plan-generate
 **Baseline SHA:** 103bec3
 **Started At:** 2026-07-05
-**Updated At:** 2026-07-05
+**Updated At:** 2026-07-07
 
 **Goal:** 用户输入偏好指令 → LLM 基于家庭上下文生成一周三餐计划 + 推荐理由 → 用户调整 → 确认。LLM 不可用时 fallback 到规则引擎。
 **Architecture:** App 层编排（ContextBuilder + PromptBuilder + ChatGateway + ResultParser + Fallback）；复用 Phase 1 的 AiChatGateway 和 Phase 2 的 PromptSanitizer；不引入新 domain 接口（直接复用现有 repository）。
@@ -57,9 +57,9 @@ flowchart LR
 - [ ] AC4: `mealmate-app` 编译通过
 
 **Execution:**
-- **Status:** todo
-- **Commit SHA:** null
-- **Attempts:** 0
+- **Status:** done
+- **Commit SHA:** 6b7a141
+- **Attempts:** 1
 - **Blocked Reason:** null
 
 **Steps:**
@@ -78,10 +78,10 @@ Expected: NOT_EXISTS
 ./mvnw test -pl mealmate-app -Dtest=MealPlanContextBuilderTest -am -Dsurefire.failIfNoSpecifiedTests=false
 ```
 逐条验证 AC：
-- AC1: 检查 familySummary 不含真实姓名
-- AC2: 检查 recipeCatalog 行数 ≤ 80
-- AC3: 检查 avoidIngredients/allergyIngredients 聚合
-- AC4: 编译通过
+- AC1: ✅ familySummary 包含"爸爸/妈妈/宝宝"，不含真实姓名
+- AC2: ✅ recipeCatalog 行数 ≤ 80
+- AC3: ✅ avoidIngredients/allergyIngredients 正确聚合多成员
+- AC4: ✅ 编译通过，Tests run: 4, Failures: 0
 
 **Step 4 (Commit):** `feat(app): 新增 AI 周计划生成 DTO 和 MealPlanContextBuilder`
 
@@ -106,9 +106,9 @@ Expected: NOT_EXISTS
 - [ ] AC4: userHint 非空时 USER message 包含原始 hint 内容
 
 **Execution:**
-- **Status:** todo
-- **Commit SHA:** null
-- **Attempts:** 0
+- **Status:** done
+- **Commit SHA:** e1fe51e
+- **Attempts:** 1
 - **Blocked Reason:** null
 
 **Steps:**
@@ -127,7 +127,10 @@ Expected: 两个 NOT_EXISTS
 ./mvnw compile -pl mealmate-app -am -q
 ./mvnw test -pl mealmate-app -Dtest=MealPlanPromptBuilderTest -am -Dsurefire.failIfNoSpecifiedTests=false
 ```
-逐条验证 AC1-AC4。
+- AC1: ✅ 返回恰好 2 条消息 SYSTEM + USER
+- AC2: ✅ USER message 包含 familySummary、preferenceSummary、recipeCatalog、weekStartDate
+- AC3: ✅ hint 为空时包含"无特殊要求"
+- AC4: ✅ hint 非空时包含原始内容。Tests run: 4, Failures: 0
 
 **Step 4 (Commit):** `feat(app): 新增 MealPlanPromptBuilder 和饮食计划 system prompt`
 
@@ -156,9 +159,9 @@ Expected: 两个 NOT_EXISTS
 - [ ] AC7: reasoning Map key 为日期字符串，value 非空
 
 **Execution:**
-- **Status:** todo
-- **Commit SHA:** null
-- **Attempts:** 0
+- **Status:** done
+- **Commit SHA:** b156baa
+- **Attempts:** 1
 - **Blocked Reason:** null
 
 **Steps:**
@@ -175,7 +178,13 @@ test ! -d mealmate-app/src/main/java/io/yggdrasil/labs/mealmate/app/mealplan/par
 ./mvnw compile -pl mealmate-app -am -q
 ./mvnw test -pl mealmate-app -Dtest=AiMealPlanResultParserTest -am -Dsurefire.failIfNoSpecifiedTests=false
 ```
-逐条验证 AC1-AC7。
+- AC1: ✅ 合法 JSON → 35 items
+- AC2: ✅ 无效 recipeId 被替换为有效 ID
+- AC3: ✅ 早餐替换优先短时长，同餐不重复
+- AC4: ✅ 缺少某天时补齐到 35
+- AC5: ✅ 多余截取（午餐 4 道→2 道）
+- AC6: ✅ 非法 JSON → AiMealPlanParseException
+- AC7: ✅ reasoning map 包含 7 天 key。Tests run: 7, Failures: 0
 
 **Step 4 (Commit):** `feat(app): 新增 AiMealPlanResultParser 及校验修正逻辑`
 
@@ -204,9 +213,9 @@ AiMealPlanAppService 作为 facade。AiMealPlanGenerateCmdExe 编排主流程：
 - [ ] AC6: 已有 DRAFT 计划 → 覆盖（逻辑删除旧计划）
 
 **Execution:**
-- **Status:** todo
-- **Commit SHA:** null
-- **Attempts:** 0
+- **Status:** done
+- **Commit SHA:** a0260ff
+- **Attempts:** 1
 - **Blocked Reason:** null
 
 **Steps:**
@@ -224,7 +233,12 @@ Expected: COMPILATION ERROR 或 TEST FAILURE
 ./mvnw compile -pl mealmate-app -am -q
 ./mvnw test -pl mealmate-app -Dtest=AiMealPlanGenerateCmdExeTest -am -Dsurefire.failIfNoSpecifiedTests=false
 ```
-逐条验证 AC1-AC6。
+- AC1: ✅ 正常流程 → fallback=false, reasoning 非空
+- AC2: ✅ chatGateway 抛异常 → fallback=true, reasoning={}
+- AC3: ✅ parse 首次失败重试成功 → fallback=false
+- AC4: ✅ weekStartDate 非周一 → BizException
+- AC5: ✅ CONFIRMED → BizException
+- AC6: ✅ DRAFT → deleteItems + logicalDelete 被调用。Tests run: 7, Failures: 0
 
 **Step 4 (Commit):** `feat(app): 新增 AiMealPlanGenerateCmdExe 编排及 fallback 逻辑`
 
