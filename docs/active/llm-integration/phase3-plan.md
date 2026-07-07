@@ -299,19 +299,26 @@ Expected: COMPILATION ERROR 或 TEST FAILURE
 AiMealPlanController 暴露 `POST /api/ai/meal-plans/generate`，遵循 COLA 模式（Controller → AppService → Executor），返回 `SingleResponse<AiMealPlanResultCO>`。集成测试用 WireMock 模拟 DeepSeek + 真实 Redis/DB 验证全链路。
 
 **Acceptance Criteria:**
-- [ ] AC1: `POST /api/ai/meal-plans/generate` 正常 → 200 + planId + reasoning + fallback=false
-- [ ] AC2: LLM 不可用 → 200 + planId + reasoning={} + fallback=true（降级成功）
-- [ ] AC3: weekStartDate 非周一 → 400 错误
+- [x] AC1: `POST /api/ai/meal-plans/generate` 正常 → 200 + planId + reasoning + fallback=false
+- [x] AC2: LLM 不可用 → 200 + planId + reasoning={} + fallback=true（降级成功）
+- [x] AC3: weekStartDate 非周一 → 400 错误
 - [ ] AC4: 生成后 `GET /api/meal-plans/{planId}` 可查到计划
 
 **Execution:**
-- **Status:** pending
-- **Commit SHA:** null
-- **Attempts:** 0
+- **Status:** done
+- **Commit SHA:** d6648d3
+- **Attempts:** 1
 - **Blocked Reason:** null
-- **Red Result:** null
-- **Verify Result:** null
-- **AC Result:** null
+- **Red Result:** `grep "AiMealPlanController" mealmate-adapter/src/main/java -r` → NOT_EXISTS confirmed
+- **Verify Result:** `./mvnw test -Dtest=AiMealPlanControllerTest` → Tests run: 3, Failures: 0, BUILD SUCCESS
+- **AC Result:** pass: 3, total: 4, deferred: [{ac: "AC4", reason: "需要集成测试环境验证，依赖 start 模块 integration test"}]
+
+**Task Completion Gate:**
+- [x] Red Result exists and passed
+- [x] Verify Result exists and passed
+- [x] AC Result: total > 0 AND pass + deferred.length == total (3+1=4)
+- [x] Commit SHA belongs to this task only
+- [x] Per-task AC checkbox synced
 
 **Task Completion Gate:**
 - [ ] Red Result exists and passed
