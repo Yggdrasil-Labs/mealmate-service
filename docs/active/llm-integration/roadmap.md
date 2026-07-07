@@ -94,14 +94,13 @@ tags: [llm, ai, deepseek, recipe, meal-plan]
 | # | 任务 | 交付物 |
 |---|------|--------|
 | 3.1 | 设计 Prompt 模板（meal-plan-generate-system.txt） | 含家庭画像格式、菜品摘要、约束规则 |
-| 3.2 | 在 MealPlan 域定义策略接口 `MealPlanAdvisor` | `domain/mealplan/service/MealPlanAdvisor.java` |
-| 3.3 | Infrastructure 层实现 `DeepSeekMealPlanAdvisor` | RestClient 调用 + 解析推荐列表 |
-| 3.4 | 实现 Context Builder（组装家庭画像 + 菜品库摘要 + 近期历史 + 用户指令） | App 层 |
-| 3.5 | 实现 AI 生成 → 转 WeeklyMealPlan + 推荐理由 | App 层编排 |
-| 3.6 | LLM 不可用时 fallback 到 `WeekPlanGenerateDomainService` | 降级路径 |
-| 3.7 | 前端：周计划页面增加"AI 生成"按钮 + 指令输入框 | `modules/meal-plan/` 下新增 AI api/types |
-| 3.8 | 前端：展示每日推荐理由 + 允许逐项调整 | reasoning 展示组件 |
-| 3.9 | 测试：单测 + E2E（mock AI 响应） | AI 计划生成全链路 spec |
+| 3.2 | App 层 ContextBuilder + PromptBuilder + ResultParser | 上下文组装、消息构建、结果解析校验 |
+| 3.3 | App 层 AiMealPlanGenerateCmdExe 编排 | AI 生成 + fallback 到规则引擎 |
+| 3.4 | 新增 PlanSource.RULE_ENGINE 枚举，修正现有计划来源标记 | domain 枚举变更 |
+| 3.5 | 实现 Controller AiMealPlanController | API 入口 |
+| 3.6 | 前端：周计划页面增加"AI 生成"按钮 + 指令输入框 | `modules/meal-plan/` 下新增 AI api/types |
+| 3.7 | 前端：展示每日推荐理由 + fallback 提示 | reasoning 展示组件 |
+| 3.8 | 测试：单测 + E2E（mock AI 响应） | AI 计划生成全链路 spec |
 
 **验收标准：**
 - 用户输入"这周想吃清淡的川菜" → 生成符合偏好的周计划
@@ -124,10 +123,12 @@ tags: [llm, ai, deepseek, recipe, meal-plan]
 
 ### 核心原则
 
-- **AI 是技术能力，不是业务领域**：不新增 `domain/ai/` 包，接口按服务对象归入 Recipe 或 MealPlan 域
-- **依赖倒置**：domain 定义策略接口，infrastructure 提供 DeepSeek 实现
+- **AI 是技术能力，不是业务领域**：不新增 `domain/ai/` 包，AI 聊天网关定义在 `domain/common/ai`
+- **通用网关 + App 层编排**：domain 层定义通用 `AiChatGateway` 接口，App 层负责 prompt 构建、结果解析和业务编排。不为每个业务场景引入独立策略接口（如 RecipeParser / MealPlanAdvisor），因为 prompt 构建和结果解析本质是应用层编排逻辑，不属于 domain 规则
 - **不侵入现有模型**：Recipe / WeeklyMealPlan 聚合根不因 AI 而改变结构
 - **App 层编排**：AI 调用 + 会话管理 + 校验确认 = App 层职责
+
+> **决策记录（2026-07-05）：** 放弃 roadmap 初版中的 `RecipeParser` / `MealPlanAdvisor` 策略接口方案。Phase 2 实施验证了直接使用 `AiChatGateway` + App 层 PromptBuilder + ResultParser 的模式更简洁——策略接口只是把 App 层逻辑搬到 infra 层，没有真正的依赖倒置收益。Phase 4.5 更换 LLM 提供商时，只需替换 `AiChatGateway` 实现（DeepSeek → Ollama），App 层编排逻辑不受影响。
 
 ### 分层归属
 
@@ -136,40 +137,35 @@ adapter/web/
   ├── AiRecipeController.java           # AI 菜品解析 API
   └── AiMealPlanController.java         # AI 计划生成 API
 
-app/ai/
-  ├── AiRecipeParseAppService.java      # 菜品解析编排（会话 + Parser + 校验）
-  ├── AiMealPlanAppService.java         # 计划生成编排（context + Advisor + fallback）
-  ├── port/
-  │   └── AiSessionPort.java            # 会话存储接口（App 层定义）
-  └── dto/
-      ├── AiChatMessageCmd.java         # { sessionId?, message }
-      ├── AiChatReplyDTO.java           # { sessionId, reply, parsed?, status, suggestions }
-      └── AiMealPlanGenerateCmd.java    # { familyId, weekStartDate, userHint? }
+app/recipe/
+  ├── AiRecipeAppService.java           # 菜品解析编排（会话 + PromptBuilder + 校验）
+  ├── AiRecipeParseCmdExe.java          # 多轮解析执行器
+  └── AiRecipeConfirmCmdExe.java        # 确认入库执行器
 
-domain/recipe/service/
-  └── RecipeParser.java                 # 策略接口：文本 → Recipe 结构化数据
+app/mealplan/
+  ├── AiMealPlanAppService.java         # 计划生成编排（context + LLM + fallback）
+  └── AiMealPlanGenerateCmdExe.java     # AI 生成执行器
 
-domain/mealplan/service/
-  └── MealPlanAdvisor.java              # 策略接口：context → 推荐计划 + 理由
+domain/common/ai/
+  ├── AiChatGateway.java                # 通用聊天网关接口（domain 层定义）
+  ├── AiChatRequest.java                # 请求值对象
+  ├── AiChatResult.java                 # 结果值对象
+  ├── AiMessage.java                    # 消息值对象
+  ├── AiSession.java                    # 会话聚合
+  ├── AiSessionRepository.java          # 会话仓储接口
+  └── PromptSanitizer.java              # 输入清洗接口
 
 infrastructure/ai/
   ├── deepseek/
-  │   ├── DeepSeekChatClient.java       # RestClient 封装（调用 /chat/completions）
-  │   ├── DeepSeekProperties.java       # API 配置（base-url, api-key, model, timeout）
-  │   ├── DeepSeekRecipeParser.java     # RecipeParser 实现
-  │   ├── DeepSeekMealPlanAdvisor.java  # MealPlanAdvisor 实现
+  │   ├── DeepSeekChatGateway.java      # AiChatGateway 实现（RestClient）
+  │   ├── DeepSeekProperties.java       # API 配置
   │   └── dto/                          # OpenAI 协议 DTO
-  │       ├── ChatRequest.java
-  │       ├── ChatResponse.java
-  │       ├── ChatMessage.java
-  │       └── ChatChoice.java
   ├── session/
-  │   └── RedisAiSessionStore.java      # AiSessionPort 实现
-  ├── prompt/
-  │   ├── recipe-parse-system.txt       # 菜品解析 system prompt
-  │   └── meal-plan-generate-system.txt # 计划生成 system prompt
-  └── safety/
-      └── PromptSanitizer.java          # 输入清洗 + injection 防御
+  │   └── RedisAiSessionRepository.java # AiSessionRepository 实现
+  ├── safety/
+  │   └── DefaultPromptSanitizer.java   # PromptSanitizer 实现
+  └── recipe/
+      └── RedisRecipeParseCacheRepository.java  # 菜品解析缓存
 ```
 
 ### 依赖方向
