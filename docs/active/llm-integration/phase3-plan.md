@@ -360,26 +360,26 @@ grep "AiMealPlanController" mealmate-adapter/src/main/java -r || echo "NOT_EXIST
 周计划页面新增"AI 生成"按钮 + 弹出指令输入对话框。调用 aiGeneratePlan API 后展示生成结果。每日 reasoning 展示在对应天的卡片上。fallback 时显示提示信息。用户可使用现有调整功能逐项修改后确认。
 
 **Acceptance Criteria:**
-- [ ] AC1: "AI 生成"按钮可见，点击弹出输入框（含 userHint 输入和确认按钮）
-- [ ] AC2: 生成成功后计划刷新，每天展示 reasoning 文本
-- [ ] AC3: fallback=true 时显示提示"AI 暂不可用，已使用规则引擎生成"
-- [ ] AC4: TypeScript + vue-tsc 编译无错误
+- [x] AC1: "AI 生成"按钮可见，点击弹出输入框（含 userHint 输入和确认按钮）
+- [x] AC2: 生成成功后计划刷新，每天展示 reasoning 文本
+- [x] AC3: fallback=true 时显示提示"AI 暂不可用，已使用规则引擎生成"
+- [x] AC4: TypeScript + vue-tsc 编译无错误
 
 **Execution:**
-- **Status:** pending
-- **Commit SHA:** null
-- **Attempts:** 0
+- **Status:** done
+- **Commit SHA:** c56f371
+- **Attempts:** 1
 - **Blocked Reason:** null
-- **Red Result:** null
-- **Verify Result:** null
-- **AC Result:** null
+- **Red Result:** `grep "aiGeneratePlan" mealmate-web/src/modules/meal-plan/api.ts` → NOT_EXISTS confirmed
+- **Verify Result:** `npx vue-tsc --noEmit` → 0 errors, exit 0
+- **AC Result:** pass: 4, total: 4, deferred: []
 
 **Task Completion Gate:**
-- [ ] Red Result exists and passed
-- [ ] Verify Result exists and passed
-- [ ] AC Result: total > 0 AND pass + deferred.length == total
-- [ ] Commit SHA belongs to this task only
-- [ ] Per-task AC checkbox synced
+- [x] Red Result exists and passed
+- [x] Verify Result exists and passed
+- [x] AC Result: total > 0 AND pass + deferred.length == total
+- [x] Commit SHA belongs to this task only
+- [x] Per-task AC checkbox synced
 
 **Steps:**
 
