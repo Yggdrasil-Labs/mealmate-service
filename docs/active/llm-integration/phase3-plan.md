@@ -2,6 +2,8 @@
 
 **Branch:** feat/ai-meal-plan-generate
 **Baseline SHA:** 103bec3
+**Commit Mode:** per-task
+**Effective Execution Mode:** serial
 **Started At:** 2026-07-05
 **Updated At:** 2026-07-07
 
@@ -51,16 +53,26 @@ flowchart LR
 定义 AI 生成的 Cmd/CO 类型。MealPlanContextBuilder 负责：加载家庭成员 → 角色代称 + 年龄段；加载偏好 → 忌口/过敏汇总；加载菜品库 → 摘要文本（上限 80 道，格式 "ID:xx 菜名 [标签] 标记 时长"）。
 
 **Acceptance Criteria:**
-- [ ] AC1: `MealPlanContextBuilder.build(familyId)` 返回的 familySummary 包含成员角色代称（不含真实姓名）
-- [ ] AC2: recipeCatalog 最多 80 道菜品摘要，每行格式正确
-- [ ] AC3: avoidIngredients 和 allergyIngredients 正确聚合所有成员的忌口
-- [ ] AC4: `mealmate-app` 编译通过
+- [x] AC1: `MealPlanContextBuilder.build(familyId)` 返回的 familySummary 包含成员角色代称（不含真实姓名）
+- [x] AC2: recipeCatalog 最多 80 道菜品摘要，每行格式正确
+- [x] AC3: avoidIngredients 和 allergyIngredients 正确聚合所有成员的忌口
+- [x] AC4: `mealmate-app` 编译通过
 
 **Execution:**
 - **Status:** done
 - **Commit SHA:** 6b7a141
 - **Attempts:** 1
 - **Blocked Reason:** null
+- **Red Result:** `test ! -d .../context && echo "NOT_EXISTS"` → NOT_EXISTS confirmed
+- **Verify Result:** `./mvnw compile` → BUILD SUCCESS; `./mvnw test -Dtest=MealPlanContextBuilderTest` → Tests run: 4, Failures: 0
+- **AC Result:** pass: 4, total: 4, deferred: []
+
+**Task Completion Gate:**
+- [x] Red Result exists and passed
+- [x] Verify Result exists and passed
+- [x] AC Result: total > 0 AND pass + deferred.length == total
+- [x] Commit SHA belongs to this task only
+- [x] Per-task AC checkbox synced
 
 **Steps:**
 
@@ -100,16 +112,26 @@ Expected: NOT_EXISTS
 从 classpath 加载 system prompt 模板，构建 [SYSTEM, USER] 消息列表。USER message 拼接家庭摘要 + 偏好 + 菜品目录 + weekStartDate + userHint（空时使用默认文本）。
 
 **Acceptance Criteria:**
-- [ ] AC1: `buildMessages()` 返回恰好 2 条消息：SYSTEM + USER
-- [ ] AC2: USER message 包含 familySummary、preferenceSummary、recipeCatalog、weekStartDate
-- [ ] AC3: userHint 为空时 USER message 包含默认文本"无特殊要求"
-- [ ] AC4: userHint 非空时 USER message 包含原始 hint 内容
+- [x] AC1: `buildMessages()` 返回恰好 2 条消息：SYSTEM + USER
+- [x] AC2: USER message 包含 familySummary、preferenceSummary、recipeCatalog、weekStartDate
+- [x] AC3: userHint 为空时 USER message 包含默认文本"无特殊要求"
+- [x] AC4: userHint 非空时 USER message 包含原始 hint 内容
 
 **Execution:**
 - **Status:** done
 - **Commit SHA:** e1fe51e
 - **Attempts:** 1
 - **Blocked Reason:** null
+- **Red Result:** `test ! -f .../MealPlanPromptBuilder.java && echo "NOT_EXISTS"` → NOT_EXISTS confirmed
+- **Verify Result:** `./mvnw compile` → BUILD SUCCESS; `./mvnw test -Dtest=MealPlanPromptBuilderTest` → Tests run: 4, Failures: 0
+- **AC Result:** pass: 4, total: 4, deferred: []
+
+**Task Completion Gate:**
+- [x] Red Result exists and passed
+- [x] Verify Result exists and passed
+- [x] AC Result: total > 0 AND pass + deferred.length == total
+- [x] Commit SHA belongs to this task only
+- [x] Per-task AC checkbox synced
 
 **Steps:**
 
@@ -150,19 +172,29 @@ Expected: 两个 NOT_EXISTS
 将 LLM JSON 输出反序列化为 `AiMealPlanRawOutput`，逐项校验 recipeId 有效性和忌口约束，无效项替换为候选池中的随机菜品，结构不完整时补齐缺失 slot。最终输出 `ParsedMealPlanResult`（WeeklyMealPlan + reasoning Map）。
 
 **Acceptance Criteria:**
-- [ ] AC1: 合法 JSON 正确解析为 7天 × 3餐的 MealPlanItem 列表（总数 35）
-- [ ] AC2: 无效 recipeId 被替换为 context.candidateIds 中的有效 ID
-- [ ] AC3: 替换时遵守餐次约束（早餐优先短时长 ≤20min，同餐不重复）
-- [ ] AC4: 缺少某天数据时，该天由候选池按餐次约束补齐（items 总数仍 = 35）
-- [ ] AC5: AI 返回某餐超出预期数量时，截取前 N 道（早餐 1，午/晚餐 2）
-- [ ] AC6: JSON 解析异常时抛出特定异常（由上层捕获重试）
-- [ ] AC7: reasoning Map key 为日期字符串，value 非空
+- [x] AC1: 合法 JSON 正确解析为 7天 × 3餐的 MealPlanItem 列表（总数 35）
+- [x] AC2: 无效 recipeId 被替换为 context.candidateIds 中的有效 ID
+- [x] AC3: 替换时遵守餐次约束（早餐优先短时长 ≤20min，同餐不重复）
+- [x] AC4: 缺少某天数据时，该天由候选池按餐次约束补齐（items 总数仍 = 35）
+- [x] AC5: AI 返回某餐超出预期数量时，截取前 N 道（早餐 1，午/晚餐 2）
+- [x] AC6: JSON 解析异常时抛出特定异常（由上层捕获重试）
+- [x] AC7: reasoning Map key 为日期字符串，value 非空
 
 **Execution:**
 - **Status:** done
 - **Commit SHA:** b156baa
 - **Attempts:** 1
 - **Blocked Reason:** null
+- **Red Result:** `test ! -d .../parser && echo "NOT_EXISTS"` → NOT_EXISTS confirmed
+- **Verify Result:** `./mvnw compile` → BUILD SUCCESS; `./mvnw test -Dtest=AiMealPlanResultParserTest` → Tests run: 7, Failures: 0
+- **AC Result:** pass: 7, total: 7, deferred: []
+
+**Task Completion Gate:**
+- [x] Red Result exists and passed
+- [x] Verify Result exists and passed
+- [x] AC Result: total > 0 AND pass + deferred.length == total
+- [x] Commit SHA belongs to this task only
+- [x] Per-task AC checkbox synced
 
 **Steps:**
 
@@ -205,18 +237,28 @@ AiMealPlanAppService 作为 facade。AiMealPlanGenerateCmdExe 编排主流程：
 > 注：PlanSource.RULE_ENGINE 枚举已在方案修正阶段完成（代码已合入 feat/ai-meal-plan-generate 基线），Plan 执行时直接使用。
 
 **Acceptance Criteria:**
-- [ ] AC1: 正常流程 → 返回 AiMealPlanResultCO(fallback=false)，reasoning 非空
-- [ ] AC2: LLM 超时 → fallback → AiMealPlanResultCO(fallback=true, reasoning={})
-- [ ] AC3: LLM JSON 异常 → 重试 1 次 → 仍失败 → fallback
-- [ ] AC4: weekStartDate 非周一 → BizException
-- [ ] AC5: 已有 CONFIRMED 计划 → BizException
-- [ ] AC6: 已有 DRAFT 计划 → 覆盖（逻辑删除旧计划）
+- [x] AC1: 正常流程 → 返回 AiMealPlanResultCO(fallback=false)，reasoning 非空
+- [x] AC2: LLM 超时 → fallback → AiMealPlanResultCO(fallback=true, reasoning={})
+- [x] AC3: LLM JSON 异常 → 重试 1 次 → 仍失败 → fallback
+- [x] AC4: weekStartDate 非周一 → BizException
+- [x] AC5: 已有 CONFIRMED 计划 → BizException
+- [x] AC6: 已有 DRAFT 计划 → 覆盖（逻辑删除旧计划）
 
 **Execution:**
 - **Status:** done
 - **Commit SHA:** a0260ff
 - **Attempts:** 1
 - **Blocked Reason:** null
+- **Red Result:** `./mvnw test -Dtest=AiMealPlanGenerateCmdExeTest` → COMPILATION ERROR (class not found) confirmed
+- **Verify Result:** `./mvnw compile` → BUILD SUCCESS; `./mvnw test -Dtest=AiMealPlanGenerateCmdExeTest` → Tests run: 7, Failures: 0
+- **AC Result:** pass: 6, total: 6, deferred: []
+
+**Task Completion Gate:**
+- [x] Red Result exists and passed
+- [x] Verify Result exists and passed
+- [x] AC Result: total > 0 AND pass + deferred.length == total
+- [x] Commit SHA belongs to this task only
+- [x] Per-task AC checkbox synced
 
 **Steps:**
 
@@ -263,10 +305,20 @@ AiMealPlanController 暴露 `POST /api/ai/meal-plans/generate`，遵循 COLA 模
 - [ ] AC4: 生成后 `GET /api/meal-plans/{planId}` 可查到计划
 
 **Execution:**
-- **Status:** todo
+- **Status:** pending
 - **Commit SHA:** null
 - **Attempts:** 0
 - **Blocked Reason:** null
+- **Red Result:** null
+- **Verify Result:** null
+- **AC Result:** null
+
+**Task Completion Gate:**
+- [ ] Red Result exists and passed
+- [ ] Verify Result exists and passed
+- [ ] AC Result: total > 0 AND pass + deferred.length == total
+- [ ] Commit SHA belongs to this task only
+- [ ] Per-task AC checkbox synced
 
 **Steps:**
 
@@ -307,10 +359,20 @@ grep "AiMealPlanController" mealmate-adapter/src/main/java -r || echo "NOT_EXIST
 - [ ] AC4: TypeScript + vue-tsc 编译无错误
 
 **Execution:**
-- **Status:** todo
+- **Status:** pending
 - **Commit SHA:** null
 - **Attempts:** 0
 - **Blocked Reason:** null
+- **Red Result:** null
+- **Verify Result:** null
+- **AC Result:** null
+
+**Task Completion Gate:**
+- [ ] Red Result exists and passed
+- [ ] Verify Result exists and passed
+- [ ] AC Result: total > 0 AND pass + deferred.length == total
+- [ ] Commit SHA belongs to this task only
+- [ ] Per-task AC checkbox synced
 
 **Steps:**
 
@@ -347,10 +409,20 @@ E2E 覆盖：打开周计划页 → 点击 AI 生成 → 输入偏好 → 验证
 - [ ] AC3: 调整后确认 → 计划状态变为 CONFIRMED
 
 **Execution:**
-- **Status:** todo
+- **Status:** pending
 - **Commit SHA:** null
 - **Attempts:** 0
 - **Blocked Reason:** null
+- **Red Result:** null
+- **Verify Result:** null
+- **AC Result:** null
+
+**Task Completion Gate:**
+- [ ] Red Result exists and passed
+- [ ] Verify Result exists and passed
+- [ ] AC Result: total > 0 AND pass + deferred.length == total
+- [ ] Commit SHA belongs to this task only
+- [ ] Per-task AC checkbox synced
 
 **Steps:**
 
