@@ -286,9 +286,9 @@ Response:
 
 - [x] DeepSeek API endpoint 可达（已验证）
 - [x] 技术方案确定：RestClient 直调（已验证 Spring AI 不兼容）
-- [ ] DeepSeek API Key 申请
-- [ ] Redis 实例可用（本地 Docker / 云服务）
-- [ ] 确认 E2E 环境 docker-compose 中需新增 Redis 容器
+- [x] DeepSeek API Key 申请
+- [x] Redis 实例可用（本地 Docker / 云服务）
+- [x] 确认 E2E 环境 docker-compose 中需新增 Redis 容器
 
 ## 文档同步计划
 
