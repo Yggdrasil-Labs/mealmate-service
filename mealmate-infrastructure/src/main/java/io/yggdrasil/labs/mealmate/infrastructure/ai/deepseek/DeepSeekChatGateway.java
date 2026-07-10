@@ -1,28 +1,54 @@
 package io.yggdrasil.labs.mealmate.infrastructure.ai.deepseek;
 
+import java.io.InputStream;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
 
 import io.yggdrasil.labs.mealmate.domain.common.ai.*;
 import io.yggdrasil.labs.mealmate.domain.common.exception.BizException;
+import io.yggdrasil.labs.mealmate.infrastructure.ai.deepseek.dto.ChatCompletionChunk;
 import io.yggdrasil.labs.mealmate.infrastructure.ai.deepseek.dto.ChatCompletionRequest;
 import io.yggdrasil.labs.mealmate.infrastructure.ai.deepseek.dto.ChatCompletionResponse;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-/** DeepSeek LLM 网关实现。通过 RestClient 调用 OpenAI 兼容接口。 */
+/**
+ * DeepSeek LLM 网关实现。通过 RestClient 调用 OpenAI 兼容接口。
+ *
+ * <p>支持同步 chat 和流式 streamChat 两种调用模式：
+ *
+ * <ul>
+ *   <li>同步模式使用 deepSeekRestClient（SimpleClientHttpRequestFactory）
+ *   <li>流式模式使用 deepSeekStreamRestClient（JdkClientHttpRequestFactory）+ DeepSeekStreamParser
+ * </ul>
+ */
 @Component
-@RequiredArgsConstructor
 @Slf4j
 public class DeepSeekChatGateway implements AiChatGateway {
 
     private final RestClient deepSeekRestClient;
+    private final RestClient deepSeekStreamRestClient;
+    private final DeepSeekStreamParser streamParser;
     private final DeepSeekProperties properties;
+
+    public DeepSeekChatGateway(
+            RestClient deepSeekRestClient,
+            @Qualifier("deepSeekStreamRestClient") RestClient deepSeekStreamRestClient,
+            DeepSeekStreamParser streamParser,
+            DeepSeekProperties properties) {
+        this.deepSeekRestClient = deepSeekRestClient;
+        this.deepSeekStreamRestClient = deepSeekStreamRestClient;
+        this.streamParser = streamParser;
+        this.properties = properties;
+    }
 
     @Override
     public AiChatResult chat(AiChatRequest request) {
@@ -62,6 +88,101 @@ public class DeepSeekChatGateway implements AiChatGateway {
             long latency = System.currentTimeMillis() - start;
             log.error("[DeepSeek] TIMEOUT latency={}ms error={}", latency, e.getMessage());
             throw new BizException(AiErrorCode.AI_SERVICE_UNAVAILABLE);
+        }
+    }
+
+    /**
+     * 流式聊天：构建 stream=true 请求，通过 exchange 获取原始响应流， 委托 DeepSeekStreamParser 逐行解析并回调 onChunk。
+     *
+     * <p>流程：buildRequest → setStream(true) → exchange → Parser.parse → 累积 content → onComplete。
+     * 异常统一映射为 BizException 后回调 onError。
+     */
+    @Override
+    public void streamChat(
+            AiChatRequest request,
+            AtomicBoolean cancelled,
+            Consumer<String> onChunk,
+            Consumer<AiChatResult> onComplete,
+            Consumer<Exception> onError) {
+
+        ChatCompletionRequest body = buildRequest(request);
+        body.setStream(true);
+        long start = System.currentTimeMillis();
+        StringBuilder fullContent = new StringBuilder();
+        // 用于收集最终 usage（仅最后一个 chunk 携带）
+        final ChatCompletionResponse.Usage[] usageHolder = new ChatCompletionResponse.Usage[1];
+
+        try {
+            deepSeekStreamRestClient
+                    .post()
+                    .uri("/chat/completions")
+                    .body(body)
+                    .exchange(
+                            (req, resp) -> {
+                                // HTTP 错误码直接抛出，由外层 catch 统一处理
+                                if (resp.getStatusCode().isError()) {
+                                    throw new HttpClientErrorException(resp.getStatusCode());
+                                }
+                                try (InputStream is = resp.getBody()) {
+                                    streamParser.parse(
+                                            is,
+                                            cancelled,
+                                            chunk -> {
+                                                if (chunk.getChoices() != null
+                                                        && !chunk.getChoices().isEmpty()) {
+                                                    ChatCompletionChunk.Delta delta =
+                                                            chunk.getChoices().get(0).getDelta();
+                                                    // 提取增量文本并回调
+                                                    if (delta != null
+                                                            && delta.getContent() != null
+                                                            && !delta.getContent().isEmpty()) {
+                                                        fullContent.append(delta.getContent());
+                                                        onChunk.accept(delta.getContent());
+                                                    }
+                                                }
+                                                // 收集 usage（仅最后一个 chunk 携带）
+                                                if (chunk.getUsage() != null) {
+                                                    usageHolder[0] = chunk.getUsage();
+                                                }
+                                            },
+                                            () -> {
+                                                /* onDone 由外层处理 */
+                                            });
+                                }
+                                return null;
+                            });
+
+            // 流正常结束，构建完整结果
+            long latency = System.currentTimeMillis() - start;
+            ChatCompletionResponse.Usage usage = usageHolder[0];
+            AiChatResult result =
+                    AiChatResult.builder()
+                            .content(fullContent.toString())
+                            .finishReason("stop")
+                            .promptTokens(usage != null ? usage.getPromptTokens() : 0)
+                            .completionTokens(usage != null ? usage.getCompletionTokens() : 0)
+                            .totalTokens(usage != null ? usage.getTotalTokens() : 0)
+                            .build();
+            log.info(
+                    "[DeepSeek] stream model={} tokens={{prompt:{},completion:{},total:{}}}"
+                            + " latency={}ms",
+                    properties.getModel(),
+                    result.getPromptTokens(),
+                    result.getCompletionTokens(),
+                    result.getTotalTokens(),
+                    latency);
+            onComplete.accept(result);
+
+        } catch (Exception e) {
+            long latency = System.currentTimeMillis() - start;
+            log.error("[DeepSeek] stream ERROR latency={}ms error={}", latency, e.getMessage());
+            if (e instanceof HttpStatusCodeException hsce) {
+                onError.accept(mapException(hsce));
+            } else if (e instanceof ResourceAccessException) {
+                onError.accept(new BizException(AiErrorCode.AI_SERVICE_UNAVAILABLE));
+            } else {
+                onError.accept(new BizException(AiErrorCode.AI_SERVICE_UNAVAILABLE));
+            }
         }
     }
 
