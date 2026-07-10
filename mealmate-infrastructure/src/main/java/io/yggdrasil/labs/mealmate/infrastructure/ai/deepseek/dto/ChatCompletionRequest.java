@@ -27,6 +27,9 @@ public class ChatCompletionRequest {
 
     private Double temperature;
 
+    /** 启用流式响应。null 或 false 时使用同步模式。 */
+    private Boolean stream;
+
     /** 控制 thinking mode 开关。null 时使用模型默认值（enabled）。 */
     private Thinking thinking;
 
