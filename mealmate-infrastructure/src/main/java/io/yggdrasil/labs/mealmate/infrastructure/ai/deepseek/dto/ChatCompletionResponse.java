@@ -2,6 +2,7 @@ package io.yggdrasil.labs.mealmate.infrastructure.ai.deepseek.dto;
 
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import lombok.Data;
@@ -9,6 +10,7 @@ import lombok.NoArgsConstructor;
 
 @Data
 @NoArgsConstructor
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class ChatCompletionResponse {
     private String id;
     private List<Choice> choices;
@@ -17,6 +19,7 @@ public class ChatCompletionResponse {
 
     @Data
     @NoArgsConstructor
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class Choice {
         private int index;
         private MessageItem message;
@@ -27,6 +30,7 @@ public class ChatCompletionResponse {
 
     @Data
     @NoArgsConstructor
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class MessageItem {
         private String role;
         private String content;
@@ -37,6 +41,7 @@ public class ChatCompletionResponse {
 
     @Data
     @NoArgsConstructor
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class Usage {
         @JsonProperty("prompt_tokens")
         private int promptTokens;
@@ -59,6 +64,7 @@ public class ChatCompletionResponse {
 
     @Data
     @NoArgsConstructor
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class CompletionTokensDetails {
         @JsonProperty("reasoning_tokens")
         private int reasoningTokens;

@@ -70,6 +70,7 @@ public class AiRecipeStreamController {
 
         aiStreamExecutor.execute(
                 () -> {
+                    log.info("[AI Stream] Async task started for recipe chat stream");
                     try {
                         aiRecipeAppService.chatStream(
                                 cmd,

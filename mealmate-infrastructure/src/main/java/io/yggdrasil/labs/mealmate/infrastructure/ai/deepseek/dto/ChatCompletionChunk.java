@@ -2,6 +2,7 @@ package io.yggdrasil.labs.mealmate.infrastructure.ai.deepseek.dto;
 
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import lombok.Data;
@@ -14,6 +15,7 @@ import lombok.NoArgsConstructor;
  */
 @Data
 @NoArgsConstructor
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class ChatCompletionChunk {
 
     private String id;
@@ -24,6 +26,7 @@ public class ChatCompletionChunk {
 
     @Data
     @NoArgsConstructor
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class Choice {
         private int index;
         private Delta delta;
@@ -34,6 +37,7 @@ public class ChatCompletionChunk {
 
     @Data
     @NoArgsConstructor
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class Delta {
         /** 增量文本内容。 */
         private String content;

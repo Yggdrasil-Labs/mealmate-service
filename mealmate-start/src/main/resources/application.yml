@@ -19,6 +19,14 @@ mealmate:
       max-tokens: 4096
       temperature: 0.7
 
+# AccessLogFilter 禁用：它使用 ContentCachingResponseWrapper 会阻断 SSE 异步流式响应。
+# 项目 access log 由 WebInterceptor.afterCompletion 提供。
+mimir:
+  boot:
+    log:
+      access:
+        enabled: false
+
 springdoc:
   api-docs:
     enabled: false
