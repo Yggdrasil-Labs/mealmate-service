@@ -78,7 +78,8 @@ public class AiRecipeParseCmdExe {
 
         // 6. 调用 LLM
         AiChatResult chatResult =
-                chatGateway.chat(AiChatRequest.builder().messages(messages).jsonMode(true).build());
+                chatGateway.chat(
+                        AiChatRequest.builder().messages(messages).jsonMode(false).build());
 
         // 7. 解析 JSON
         RecipeParsedData newParsed = parseJson(chatResult.getContent());
@@ -178,12 +179,45 @@ public class AiRecipeParseCmdExe {
 
     /** 宽松解析 JSON。失败返回 null。 */
     private RecipeParsedData parseJson(String content) {
-        try {
-            return jsonParser.readValue(content, RecipeParsedData.class);
-        } catch (Exception e) {
-            log.warn("Failed to parse LLM response as RecipeParsedData: {}", e.getMessage());
+        String jsonStr = extractJsonBlock(content);
+        if (jsonStr == null) {
+            log.warn("No JSON block found in LLM response");
             return null;
         }
+        try {
+            return jsonParser.readValue(jsonStr, RecipeParsedData.class);
+        } catch (Exception e) {
+            log.warn("Failed to parse extracted JSON as RecipeParsedData: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    /** 从 AI 输出中提取 JSON 块（```json...``` 或纯 JSON）。 */
+    private String extractJsonBlock(String content) {
+        if (content == null || content.isBlank()) {
+            return null;
+        }
+        int start = content.indexOf("```json");
+        if (start >= 0) {
+            int jsonStart = content.indexOf('\n', start) + 1;
+            int end = content.indexOf("```", jsonStart);
+            if (end > jsonStart) {
+                return content.substring(jsonStart, end).trim();
+            }
+        }
+        start = content.indexOf("```\n");
+        if (start >= 0) {
+            int jsonStart = start + 4;
+            int end = content.indexOf("```", jsonStart);
+            if (end > jsonStart) {
+                return content.substring(jsonStart, end).trim();
+            }
+        }
+        String trimmed = content.trim();
+        if (trimmed.startsWith("{")) {
+            return trimmed;
+        }
+        return null;
     }
 
     /** merge：非 null 字段覆盖。 */
@@ -263,14 +297,24 @@ public class AiRecipeParseCmdExe {
 
     /** 从 LLM 响应中提取 reply 字段，或生成默认回复。 */
     private String extractReply(String content, RecipeParsedData parsed, RecipeParseStatus status) {
-        // 尝试从 JSON 中提取 reply 字段
-        try {
-            var node = jsonParser.readTree(content);
-            if (node.has("reply") && !node.get("reply").isNull()) {
-                return node.get("reply").asText();
+        if (content != null && !content.isBlank()) {
+            // 两段式：取 ```json 之前的文字作为 reply
+            int codeBlockStart = content.indexOf("```");
+            if (codeBlockStart > 0) {
+                String reply = content.substring(0, codeBlockStart).trim();
+                if (!reply.isEmpty()) {
+                    return reply;
+                }
             }
-        } catch (Exception ignored) {
-            // 解析失败则使用默认
+            // 兜底：尝试从 JSON 中提取 reply 字段
+            try {
+                var node = jsonParser.readTree(content);
+                if (node.has("reply") && !node.get("reply").isNull()) {
+                    return node.get("reply").asText();
+                }
+            } catch (Exception ignored) {
+                // 非 JSON 内容
+            }
         }
 
         // 默认 reply

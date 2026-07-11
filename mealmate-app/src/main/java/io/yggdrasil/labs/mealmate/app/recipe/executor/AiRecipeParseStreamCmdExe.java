@@ -118,7 +118,7 @@ public class AiRecipeParseStreamCmdExe {
 
             // 7. 流式调用 LLM
             AiChatRequest request =
-                    AiChatRequest.builder().messages(messages).jsonMode(true).build();
+                    AiChatRequest.builder().messages(messages).jsonMode(false).build();
 
             chatGateway.streamChat(
                     request,
@@ -243,14 +243,50 @@ public class AiRecipeParseStreamCmdExe {
 
     /** 宽松解析 JSON。失败返回 null。 */
     private RecipeParsedData parseJson(String content) {
+        String jsonStr = extractJsonBlock(content);
+        if (jsonStr == null) {
+            log.warn("[Stream] No JSON block found in LLM response");
+            return null;
+        }
         try {
-            return jsonParser.readValue(content, RecipeParsedData.class);
+            return jsonParser.readValue(jsonStr, RecipeParsedData.class);
         } catch (Exception e) {
             log.warn(
-                    "[Stream] Failed to parse LLM response as RecipeParsedData: {}",
+                    "[Stream] Failed to parse extracted JSON as RecipeParsedData: {}",
                     e.getMessage());
             return null;
         }
+    }
+
+    /** 从 AI 输出中提取 JSON 块。支持两种格式： 1. ```json\n{...}\n``` 代码块（两段式输出） 2. 纯 JSON 字符串（兼容 jsonMode 输出） */
+    private String extractJsonBlock(String content) {
+        if (content == null || content.isBlank()) {
+            return null;
+        }
+        // 优先匹配 ```json ... ``` 代码块
+        int start = content.indexOf("```json");
+        if (start >= 0) {
+            int jsonStart = content.indexOf('\n', start) + 1;
+            int end = content.indexOf("```", jsonStart);
+            if (end > jsonStart) {
+                return content.substring(jsonStart, end).trim();
+            }
+        }
+        // 兜底：匹配 ``` ... ``` 代码块
+        start = content.indexOf("```\n");
+        if (start >= 0) {
+            int jsonStart = start + 4;
+            int end = content.indexOf("```", jsonStart);
+            if (end > jsonStart) {
+                return content.substring(jsonStart, end).trim();
+            }
+        }
+        // 兜底：尝试直接解析（兼容纯 JSON 输出）
+        String trimmed = content.trim();
+        if (trimmed.startsWith("{")) {
+            return trimmed;
+        }
+        return null;
     }
 
     /** merge：非 null 字段覆盖。 */
@@ -319,14 +355,29 @@ public class AiRecipeParseStreamCmdExe {
     }
 
     /** 从 LLM 响应中提取 reply 字段，或生成默认回复。 */
+    /** 从两段式 AI 输出中提取自然语言 reply 部分（JSON 代码块之前的文字）。 兜底兼容旧格式（JSON 中的 reply 字段）。 */
     private String extractReply(String content, RecipeParseStatus status) {
+        if (content == null || content.isBlank()) {
+            return status == RecipeParseStatus.READY_TO_CONFIRM
+                    ? "菜品信息已完整，请确认入库。"
+                    : "已解析部分信息，还需要补充更多细节。";
+        }
+        // 两段式：取 ```json 之前的文字作为 reply
+        int codeBlockStart = content.indexOf("```");
+        if (codeBlockStart > 0) {
+            String reply = content.substring(0, codeBlockStart).trim();
+            if (!reply.isEmpty()) {
+                return reply;
+            }
+        }
+        // 兜底：尝试从 JSON 中提取 reply 字段（兼容旧 jsonMode 输出）
         try {
             var node = jsonParser.readTree(content);
             if (node.has("reply") && !node.get("reply").isNull()) {
                 return node.get("reply").asText();
             }
         } catch (Exception ignored) {
-            // 解析失败则使用默认
+            // 非 JSON 内容，使用默认
         }
         if (status == RecipeParseStatus.READY_TO_CONFIRM) {
             return "菜品信息已完整，请确认入库。";
