@@ -7,7 +7,7 @@
   "name": "菜品名称",
   "recipeType": "HOME_COOKING|BAKING|COLD_DISH|SOUP|BEVERAGE|SNACK",
   "seasonTag": "SPRING|SUMMER|AUTUMN|WINTER|ALL_SEASON",
-  "crowdTag": "ALL|ADULT|CHILD|ELDERLY",
+  "crowdTag": "GENERAL|BABY|WEIGHT_LOSS",
   "tasteTags": ["酸", "甜", "苦", "辣", "咸", "鲜"],
   "difficultyLevel": "EASY|MEDIUM|HARD",
   "cookingTimeMin": 15,
