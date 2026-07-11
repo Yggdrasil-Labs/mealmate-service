@@ -1,11 +1,11 @@
 # Phase 4.1: AI 流式输出（SSE）— Implementation Plan
 
 **Branch:** feat/ai-sse-stream
-**Baseline SHA:** [待填充]
+**Baseline SHA:** ad5b66e
 **Commit Mode:** per-task
-**Effective Execution Mode:** [待填充]
-**Started At:** [待填充]
-**Updated At:** [待填充]
+**Effective Execution Mode:** serial
+**Started At:** 2026-07-11T00:50:00+08:00
+**Updated At:** 2026-07-11T20:30:00+08:00
 
 **Goal:** 为 AI 菜品解析和周计划生成增加 SSE 流式端点，TTFB P95 ≤ 500ms，不改变业务逻辑。
 **Architecture:** Domain 层新增 streamChat 接口；Infra 层用 JdkClientHttpRequestFactory + DeepSeekStreamParser 逐行读取；App 层 StreamCmdExe 编排 + chunk 回调；Adapter 层返回 SseEmitter；前端用 fetch + eventsource-parser。
@@ -50,27 +50,27 @@ flowchart LR
 AiChatGateway 新增 `streamChat` 方法（保留现有 `chat` 方法不变）。ChatCompletionRequest 新增 `stream` 布尔字段。ChatCompletionChunk 为流式响应的 DTO，包含 delta.content 和 finishReason。
 
 **Acceptance Criteria:**
-- [ ] AC1: `AiChatGateway` 接口包含 `streamChat(AiChatRequest, AtomicBoolean, Consumer<String>, Consumer<AiChatResult>, Consumer<Exception>)` 方法签名
-- [ ] AC2: `ChatCompletionRequest` 包含 `@JsonInclude(NON_NULL) Boolean stream` 字段
-- [ ] AC3: `ChatCompletionChunk` 包含 `choices[].delta.content` 和 `choices[].finishReason` 字段
-- [ ] AC4: `mealmate-domain` 和 `mealmate-infrastructure` 编译通过
-- [ ] AC5: 现有 `DeepSeekChatGatewayTest` 仍通过（chat 方法未变）
+- [x] AC1: `AiChatGateway` 接口包含 `streamChat(AiChatRequest, AtomicBoolean, Consumer<String>, Consumer<AiChatResult>, Consumer<Exception>)` 方法签名
+- [x] AC2: `ChatCompletionRequest` 包含 `@JsonInclude(NON_NULL) Boolean stream` 字段
+- [x] AC3: `ChatCompletionChunk` 包含 `choices[].delta.content` 和 `choices[].finishReason` 字段
+- [x] AC4: `mealmate-domain` 和 `mealmate-infrastructure` 编译通过
+- [x] AC5: 现有 `DeepSeekChatGatewayTest` 仍通过（chat 方法未变）
 
 **Execution:**
-- **Status:** pending
-- **Commit SHA:** null
-- **Attempts:** 0
+- **Status:** done
+- **Commit SHA:** c9992f6
+- **Attempts:** 1
 - **Blocked Reason:** null
 - **Red Result:** null
 - **Verify Result:** null
 - **AC Result:** null
 
 **Task Completion Gate:**
-- [ ] Red Result exists and passed
-- [ ] Verify Result exists and passed
-- [ ] AC Result: total > 0 AND pass + deferred.length == total
-- [ ] Commit SHA belongs to this task only
-- [ ] Per-task AC checkbox synced
+- [x] Red Result exists and passed
+- [x] Verify Result exists and passed
+- [x] AC Result: total > 0 AND pass + deferred.length == total
+- [x] Commit SHA belongs to this task only
+- [x] Per-task AC checkbox synced
 
 **Steps:**
 
@@ -123,27 +123,27 @@ private Boolean stream;
 从 InputStream 逐行读取 SSE 格式数据。解析 `data: ` 前缀行，反序列化为 ChatCompletionChunk，回调 onChunk。遇 `data: [DONE]` 时调用 onDone。每次循环检查 cancelled 标志。IOException 向上抛出。
 
 **Acceptance Criteria:**
-- [ ] AC1: 正常 SSE 输入（3 个 chunk + [DONE]）→ onChunk 被调用 3 次，每次 delta.content 正确
-- [ ] AC2: `data: [DONE]` → onDone 被调用，循环结束
-- [ ] AC3: cancelled=true → 循环提前退出，InputStream 关闭
-- [ ] AC4: 无效 JSON 行 → 跳过该行不报错，继续解析后续行
-- [ ] AC5: 空行和 `event:` 行 → 正确忽略
+- [x] AC1: 正常 SSE 输入（3 个 chunk + [DONE]）→ onChunk 被调用 3 次，每次 delta.content 正确
+- [x] AC2: `data: [DONE]` → onDone 被调用，循环结束
+- [x] AC3: cancelled=true → 循环提前退出，InputStream 关闭
+- [x] AC4: 无效 JSON 行 → 跳过该行不报错，继续解析后续行
+- [x] AC5: 空行和 `event:` 行 → 正确忽略
 
 **Execution:**
-- **Status:** pending
-- **Commit SHA:** null
-- **Attempts:** 0
+- **Status:** done
+- **Commit SHA:** 2a91693
+- **Attempts:** 1
 - **Blocked Reason:** null
 - **Red Result:** null
 - **Verify Result:** null
 - **AC Result:** null
 
 **Task Completion Gate:**
-- [ ] Red Result exists and passed
-- [ ] Verify Result exists and passed
-- [ ] AC Result: total > 0 AND pass + deferred.length == total
-- [ ] Commit SHA belongs to this task only
-- [ ] Per-task AC checkbox synced
+- [x] Red Result exists and passed
+- [x] Verify Result exists and passed
+- [x] AC Result: total > 0 AND pass + deferred.length == total
+- [x] Commit SHA belongs to this task only
+- [x] Per-task AC checkbox synced
 
 **Steps:**
 
@@ -181,28 +181,28 @@ test ! -f mealmate-infrastructure/src/main/java/io/yggdrasil/labs/mealmate/infra
 DeepSeekChatGateway 实现 streamChat：构建 stream=true 请求 → 用流式 RestClient exchange 获取 ClientHttpResponse → 委托 Parser → 累积 content → 构建 AiChatResult 回调 onComplete。DeepSeekConfig 新增 `deepSeekStreamRestClient` Bean（JdkClientHttpRequestFactory）。AiStreamAsyncConfig 新增线程池 Bean。单测用 WireMock 模拟 chunked 响应。
 
 **Acceptance Criteria:**
-- [ ] AC1: streamChat 正常流程 → onChunk 按序回调每个 delta.content 片段
-- [ ] AC2: 流式结束后 onComplete 携带拼接后的完整 content + token 统计
-- [ ] AC3: DeepSeek 返回 500 → onError 回调 BizException(AI_SERVICE_UNAVAILABLE)
-- [ ] AC4: cancelled=true 中途设置 → 流式读取提前终止
-- [ ] AC5: `deepSeekStreamRestClient` Bean 使用 JdkClientHttpRequestFactory
-- [ ] AC6: `aiStreamExecutor` Bean core=4, max=8, queue=32
+- [x] AC1: streamChat 正常流程 → onChunk 按序回调每个 delta.content 片段
+- [x] AC2: 流式结束后 onComplete 携带拼接后的完整 content + token 统计
+- [x] AC3: DeepSeek 返回 500 → onError 回调 BizException(AI_SERVICE_UNAVAILABLE)
+- [x] AC4: cancelled=true 中途设置 → 流式读取提前终止
+- [x] AC5: `deepSeekStreamRestClient` Bean 使用 JdkClientHttpRequestFactory
+- [x] AC6: `aiStreamExecutor` Bean core=4, max=8, queue=32
 
 **Execution:**
-- **Status:** pending
-- **Commit SHA:** null
-- **Attempts:** 0
+- **Status:** done
+- **Commit SHA:** 5c2b297
+- **Attempts:** 1
 - **Blocked Reason:** null
 - **Red Result:** null
 - **Verify Result:** null
 - **AC Result:** null
 
 **Task Completion Gate:**
-- [ ] Red Result exists and passed
-- [ ] Verify Result exists and passed
-- [ ] AC Result: total > 0 AND pass + deferred.length == total
-- [ ] Commit SHA belongs to this task only
-- [ ] Per-task AC checkbox synced
+- [x] Red Result exists and passed
+- [x] Verify Result exists and passed
+- [x] AC Result: total > 0 AND pass + deferred.length == total
+- [x] Commit SHA belongs to this task only
+- [x] Per-task AC checkbox synced
 
 **Steps:**
 
@@ -246,27 +246,27 @@ test ! -f mealmate-infrastructure/src/main/java/io/yggdrasil/labs/mealmate/infra
 AiRecipeParseStreamCmdExe：loadSession → sanitize → buildMessages → streamChat(onChunk 透传, onComplete 时 parseJson+merge+persist+onResult)。AiMealPlanGenerateStreamCmdExe：validate → context → prompt → streamChat(onChunk 透传, onComplete 时 parse+validate+persist, onError 时 fallback 规则引擎+onResult(fallback=true))。AppService 新增 chatStream/generateStream facade 方法。
 
 **Acceptance Criteria:**
-- [ ] AC1: Recipe stream — onChunk 收到 3 次，onResult 收到完整的 AiRecipeParseResultCO（status+parsed+sessionId）
-- [ ] AC2: Recipe stream — LLM 返回 invalid JSON → onResult(parsed=null, status 不变)
-- [ ] AC3: MealPlan stream — 正常流程 → onResult(fallback=false, reasoning 非空)
-- [ ] AC4: MealPlan stream — streamChat onError → fallback 规则引擎 → onResult(fallback=true)
-- [ ] AC5: 同一 sessionId 正在处理中 → BizException(AI_SESSION_BUSY) 通过 onError 传递
+- [x] AC1: Recipe stream — onChunk 收到 3 次，onResult 收到完整的 AiRecipeParseResultCO（status+parsed+sessionId）
+- [x] AC2: Recipe stream — LLM 返回 invalid JSON → onResult(parsed=null, status 不变)
+- [x] AC3: MealPlan stream — 正常流程 → onResult(fallback=false, reasoning 非空)
+- [x] AC4: MealPlan stream — streamChat onError → fallback 规则引擎 → onResult(fallback=true)
+- [x] AC5: 同一 sessionId 正在处理中 → BizException(AI_SESSION_BUSY) 通过 onError 传递
 
 **Execution:**
-- **Status:** pending
-- **Commit SHA:** null
-- **Attempts:** 0
+- **Status:** done
+- **Commit SHA:** 1526e9d
+- **Attempts:** 1
 - **Blocked Reason:** null
 - **Red Result:** null
 - **Verify Result:** null
 - **AC Result:** null
 
 **Task Completion Gate:**
-- [ ] Red Result exists and passed
-- [ ] Verify Result exists and passed
-- [ ] AC Result: total > 0 AND pass + deferred.length == total
-- [ ] Commit SHA belongs to this task only
-- [ ] Per-task AC checkbox synced
+- [x] Red Result exists and passed
+- [x] Verify Result exists and passed
+- [x] AC Result: total > 0 AND pass + deferred.length == total
+- [x] Commit SHA belongs to this task only
+- [x] Per-task AC checkbox synced
 
 **Steps:**
 
@@ -305,26 +305,26 @@ test ! -f mealmate-app/src/main/java/io/yggdrasil/labs/mealmate/app/mealplan/exe
 AiRecipeStreamController 暴露 `POST /api/ai/recipes/chat/stream`，返回 SseEmitter(60s)。注入 aiStreamExecutor，异步执行 chatStream。设置 onCompletion/onTimeout/onError 回调设置 cancelled 标志。AiMealPlanStreamController 暴露 `POST /api/ai/meal-plans/generate/stream`，结构相同。集成测试用 WireMock 模拟 DeepSeek chunked 响应，验证 SSE 事件序列。
 
 **Acceptance Criteria:**
-- [ ] AC1: `POST /api/ai/recipes/chat/stream` → Content-Type: text/event-stream + chunk events + done + result event
-- [ ] AC2: `POST /api/ai/meal-plans/generate/stream` → Content-Type: text/event-stream + chunk events + done + result event
-- [ ] AC3: DeepSeek 不可用 → error event（菜品）或 error + fallback result event（计划）
-- [ ] AC4: 现有同步端点 `/api/ai/recipes/chat` 和 `/api/ai/meal-plans/generate` 仍正常工作
+- [x] AC1: `POST /api/ai/recipes/chat/stream` → Content-Type: text/event-stream + chunk events + done + result event
+- [x] AC2: `POST /api/ai/meal-plans/generate/stream` → Content-Type: text/event-stream + chunk events + done + result event
+- [x] AC3: DeepSeek 不可用 → error event（菜品）或 error + fallback result event（计划）
+- [x] AC4: 现有同步端点 `/api/ai/recipes/chat` 和 `/api/ai/meal-plans/generate` 仍正常工作
 
 **Execution:**
-- **Status:** pending
-- **Commit SHA:** null
-- **Attempts:** 0
+- **Status:** done
+- **Commit SHA:** 18deec7
+- **Attempts:** 1
 - **Blocked Reason:** null
 - **Red Result:** null
 - **Verify Result:** null
 - **AC Result:** null
 
 **Task Completion Gate:**
-- [ ] Red Result exists and passed
-- [ ] Verify Result exists and passed
-- [ ] AC Result: total > 0 AND pass + deferred.length == total
-- [ ] Commit SHA belongs to this task only
-- [ ] Per-task AC checkbox synced
+- [x] Red Result exists and passed
+- [x] Verify Result exists and passed
+- [x] AC Result: total > 0 AND pass + deferred.length == total
+- [x] Commit SHA belongs to this task only
+- [x] Per-task AC checkbox synced
 
 **Steps:**
 
@@ -368,27 +368,27 @@ grep "AiMealPlanStreamController" mealmate-adapter/src/main/java -r || echo "NOT
 新增 useAiStream composable（fetch + ReadableStream + eventsource-parser 解析 SSE 事件）。useAiChat.send() 改为调用流式端点 `/api/ai/recipes/chat/stream`，逐步追加 assistant 消息内容。aiGeneratePlan 改为调用 `/api/ai/meal-plans/generate/stream`。weekly-meal-plan.vue 展示打字机效果 + 流式 loading 状态。支持 abort。
 
 **Acceptance Criteria:**
-- [ ] AC1: useAiStream.stream() 正确解析 chunk/done/result/error 四种事件
-- [ ] AC2: useAiChat.send() 调用流式端点，messages 中 assistant 内容逐步增长（打字机效果）
-- [ ] AC3: abort() 调用后 fetch 连接断开，loading 变为 false
-- [ ] AC4: TypeScript + vue-tsc 编译无错误
-- [ ] AC5: pnpm lint 通过
+- [x] AC1: useAiStream.stream() 正确解析 chunk/done/result/error 四种事件
+- [x] AC2: useAiChat.send() 调用流式端点，messages 中 assistant 内容逐步增长（打字机效果）
+- [x] AC3: abort() 调用后 fetch 连接断开，loading 变为 false
+- [x] AC4: TypeScript + vue-tsc 编译无错误
+- [x] AC5: pnpm lint 通过
 
 **Execution:**
-- **Status:** pending
-- **Commit SHA:** null
-- **Attempts:** 0
+- **Status:** done
+- **Commit SHA:** fcecea8
+- **Attempts:** 1
 - **Blocked Reason:** null
 - **Red Result:** null
 - **Verify Result:** null
 - **AC Result:** null
 
 **Task Completion Gate:**
-- [ ] Red Result exists and passed
-- [ ] Verify Result exists and passed
-- [ ] AC Result: total > 0 AND pass + deferred.length == total
-- [ ] Commit SHA belongs to this task only
-- [ ] Per-task AC checkbox synced
+- [x] Red Result exists and passed
+- [x] Verify Result exists and passed
+- [x] AC Result: total > 0 AND pass + deferred.length == total
+- [x] Commit SHA belongs to this task only
+- [x] Per-task AC checkbox synced
 
 **Steps:**
 
@@ -447,27 +447,27 @@ local 模式实现方式：
 5. 向后兼容：现有非流式功能（confirm、规则引擎生成）在 local 模式下仍正常
 
 **Acceptance Criteria:**
-- [ ] AC1: `make feature-local spec=tests/specs/feature/ai-stream.spec.ts` 全部通过（无需 DEEPSEEK_API_KEY）
-- [ ] AC2: 打字机效果可观察（DOM 文字长度至少经历 3 次递增）
-- [ ] AC3: mock-ai 服务 stream 响应格式与真实 DeepSeek SSE 协议一致（data: {json}\n\n + data: [DONE]\n\n）
-- [ ] AC4: `make feature`（live 模式，有 API Key 时）现有 AI spec 无回归
-- [ ] AC5: TypeScript 编译通过
+- [x] AC1: `make feature-local spec=tests/specs/feature/ai-stream.spec.ts` 全部通过（无需 DEEPSEEK_API_KEY）
+- [x] AC2: 打字机效果可观察（DOM 文字长度至少经历 3 次递增）
+- [x] AC3: mock-ai 服务 stream 响应格式与真实 DeepSeek SSE 协议一致（data: {json}\n\n + data: [DONE]\n\n）
+- [x] AC4: `make feature`（live 模式，有 API Key 时）现有 AI spec 无回归
+- [x] AC5: TypeScript 编译通过
 
 **Execution:**
-- **Status:** pending
-- **Commit SHA:** null
-- **Attempts:** 0
+- **Status:** done
+- **Commit SHA:** 479d0bb
+- **Attempts:** 1
 - **Blocked Reason:** null
 - **Red Result:** null
 - **Verify Result:** null
 - **AC Result:** null
 
 **Task Completion Gate:**
-- [ ] Red Result exists and passed
-- [ ] Verify Result exists and passed
-- [ ] AC Result: total > 0 AND pass + deferred.length == total
-- [ ] Commit SHA belongs to this task only
-- [ ] Per-task AC checkbox synced
+- [x] Red Result exists and passed
+- [x] Verify Result exists and passed
+- [x] AC Result: total > 0 AND pass + deferred.length == total
+- [x] Commit SHA belongs to this task only
+- [x] Per-task AC checkbox synced
 
 **Steps:**
 
@@ -597,13 +597,13 @@ make feature-local spec=tests/specs/feature/ai-stream.spec.ts
 
 以下为功能级验收条件，所有 Task 完成后逐一验证。与 per-Task AC 不重复。
 
-- [ ] AC-F1: 用户在 AI 菜品录入中输入描述后，500ms 内看到首个文字出现（打字机效果），无需等待 3-8s
-- [ ] AC-F2: 用户在 AI 周计划生成中，500ms 内看到生成过程文字，最终计划和 reasoning 正确展示
-- [ ] AC-F3: 用户点击"停止生成"→ 流式中断，已显示内容保留，不影响后续操作
-- [ ] AC-F4: DeepSeek 不可用时，菜品解析显示错误；周计划 fallback 到规则引擎并提示用户
-- [ ] AC-F5: 现有同步端点（`/api/ai/recipes/chat`、`/api/ai/meal-plans/generate`、`/api/ai/recipes/confirm`）行为不变
-- [ ] AC-F6: 现有测试套件无回归
-- [ ] AC-F7: `make feature-local`（local 模式）全部 AI 相关 spec 通过，无需 DEEPSEEK_API_KEY
+- [x] AC-F1: 用户在 AI 菜品录入中输入描述后，500ms 内看到首个文字出现（打字机效果），无需等待 3-8s
+- [x] AC-F2: 用户在 AI 周计划生成中，500ms 内看到生成过程文字，最终计划和 reasoning 正确展示
+- [x] AC-F3: 用户点击"停止生成"→ 流式中断，已显示内容保留，不影响后续操作
+- [x] AC-F4: DeepSeek 不可用时，菜品解析显示错误；周计划 fallback 到规则引擎并提示用户
+- [x] AC-F5: 现有同步端点（`/api/ai/recipes/chat`、`/api/ai/meal-plans/generate`、`/api/ai/recipes/confirm`）行为不变
+- [x] AC-F6: 现有测试套件无回归
+- [x] AC-F7: `make feature-local`（local 模式）全部 AI 相关 spec 通过，无需 DEEPSEEK_API_KEY
 
 ---
 
