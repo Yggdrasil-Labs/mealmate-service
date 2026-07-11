@@ -1,8 +1,9 @@
 package io.yggdrasil.labs.mealmate.app.recipe.executor;
 
-import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 
 import org.springframework.stereotype.Component;
 
@@ -15,11 +16,13 @@ import io.yggdrasil.labs.mealmate.app.recipe.prompt.RecipeParsePromptBuilder;
 import io.yggdrasil.labs.mealmate.domain.common.ai.AiChatGateway;
 import io.yggdrasil.labs.mealmate.domain.common.ai.AiChatRequest;
 import io.yggdrasil.labs.mealmate.domain.common.ai.AiChatResult;
+import io.yggdrasil.labs.mealmate.domain.common.ai.AiErrorCode;
 import io.yggdrasil.labs.mealmate.domain.common.ai.AiMessage;
 import io.yggdrasil.labs.mealmate.domain.common.ai.AiMessage.AiRole;
 import io.yggdrasil.labs.mealmate.domain.common.ai.AiSession;
 import io.yggdrasil.labs.mealmate.domain.common.ai.AiSessionRepository;
 import io.yggdrasil.labs.mealmate.domain.common.ai.PromptSanitizer;
+import io.yggdrasil.labs.mealmate.domain.common.exception.BizException;
 import io.yggdrasil.labs.mealmate.domain.recipe.model.RecipeParseCache;
 import io.yggdrasil.labs.mealmate.domain.recipe.model.RecipeParsedData;
 import io.yggdrasil.labs.mealmate.domain.recipe.model.enums.RecipeParseStatus;
@@ -28,17 +31,26 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * AI 菜品解析命令执行器。
+ * AI 菜品解析流式命令执行器。
  *
- * <p>编排多轮对话：加载 session/cache → 清洗输入 → 构建 messages → 调用 LLM → 解析 JSON → merge accumulatedParsed →
- * determineStatus → 持久化。
+ * <p>复用同步版的 session/cache/sanitize/prompt/parse/persist 逻辑，改为流式回调模式：
+ *
+ * <ol>
+ *   <li>并发保护：同一 sessionId 正在流式处理时拒绝新请求
+ *   <li>loadSession → sanitize → buildMessages
+ *   <li>streamChat：onChunk 透传、onComplete 时 parseJson+merge+persist+onResult
+ * </ol>
  */
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class AiRecipeParseCmdExe {
+public class AiRecipeParseStreamCmdExe {
 
     private static final int MAX_TURNS = 10;
+
+    /** 正在处理中的 sessionId 集合，用于并发互斥。 */
+    private static final ConcurrentHashMap<String, Boolean> IN_FLIGHT_SESSIONS =
+            new ConcurrentHashMap<>();
 
     private final AiChatGateway chatGateway;
     private final AiSessionRepository sessionRepository;
@@ -50,49 +62,115 @@ public class AiRecipeParseCmdExe {
     private final ObjectMapper jsonParser =
             new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
-    public AiRecipeParseResultCO execute(AiRecipeParseChatCmd cmd) {
+    /**
+     * 流式执行菜品解析对话。
+     *
+     * @param cmd 对话命令
+     * @param onChunk 每收到 LLM 增量文本时回调
+     * @param onResult 流完成后回调完整解析结果
+     * @param onError 异常时回调
+     */
+    public void execute(
+            AiRecipeParseChatCmd cmd,
+            Consumer<String> onChunk,
+            Consumer<AiRecipeParseResultCO> onResult,
+            Consumer<Exception> onError) {
+
         // 1. 加载或创建 AiSession
-        AiSession session = loadOrCreateSession(cmd.getSessionId());
+        AiSession session;
+        try {
+            session = loadOrCreateSession(cmd.getSessionId());
+        } catch (Exception e) {
+            onError.accept(e);
+            return;
+        }
         String sessionId = session.getSessionId();
 
-        // 2. 超轮次检查
-        if (session.turnCount() >= MAX_TURNS) {
-            return handleMaxTurns(sessionId, session);
+        // 2. 并发保护：同一 sessionId 不允许并发流式处理
+        if (IN_FLIGHT_SESSIONS.putIfAbsent(sessionId, Boolean.TRUE) != null) {
+            onError.accept(new BizException(AiErrorCode.AI_SESSION_BUSY));
+            return;
         }
 
-        // 3. 加载 RecipeParseCache
-        RecipeParseCache cache =
-                parseCacheRepository
-                        .findBySessionId(sessionId)
-                        .orElse(
-                                RecipeParseCache.builder()
-                                        .status(RecipeParseStatus.PARSING)
-                                        .build());
+        try {
+            // 3. 超轮次检查
+            if (session.turnCount() >= MAX_TURNS) {
+                AiRecipeParseResultCO result = handleMaxTurns(sessionId);
+                onResult.accept(result);
+                return;
+            }
 
-        // 4. 清洗用户输入
-        String sanitized = promptSanitizer.sanitize(cmd.getMessage());
+            // 4. 加载 RecipeParseCache
+            RecipeParseCache cache =
+                    parseCacheRepository
+                            .findBySessionId(sessionId)
+                            .orElse(
+                                    RecipeParseCache.builder()
+                                            .status(RecipeParseStatus.PARSING)
+                                            .build());
 
-        // 5. 构建 messages
-        List<AiMessage> messages =
-                promptBuilder.buildMessages(session, cache.getAccumulatedParsed(), sanitized);
+            // 5. 清洗用户输入
+            String sanitized = promptSanitizer.sanitize(cmd.getMessage());
 
-        // 6. 调用 LLM
-        AiChatResult chatResult =
-                chatGateway.chat(
-                        AiChatRequest.builder().messages(messages).jsonMode(false).build());
+            // 6. 构建 messages
+            List<AiMessage> messages =
+                    promptBuilder.buildMessages(session, cache.getAccumulatedParsed(), sanitized);
 
-        // 7. 解析 JSON
+            // 7. 流式调用 LLM
+            AiChatRequest request =
+                    AiChatRequest.builder().messages(messages).jsonMode(false).build();
+
+            chatGateway.streamChat(
+                    request,
+                    new AtomicBoolean(false),
+                    // onChunk：透传给调用方
+                    onChunk,
+                    // onComplete：解析完整响应、merge、持久化、回调结果
+                    chatResult -> {
+                        try {
+                            AiRecipeParseResultCO result =
+                                    handleComplete(
+                                            sessionId, session, cache, sanitized, chatResult);
+                            onResult.accept(result);
+                        } catch (Exception e) {
+                            onError.accept(e);
+                        } finally {
+                            IN_FLIGHT_SESSIONS.remove(sessionId);
+                        }
+                    },
+                    // onError：移除 in-flight 标记，透传错误
+                    error -> {
+                        IN_FLIGHT_SESSIONS.remove(sessionId);
+                        onError.accept(error);
+                    });
+        } catch (Exception e) {
+            IN_FLIGHT_SESSIONS.remove(sessionId);
+            onError.accept(e);
+        }
+    }
+
+    /**
+     * 流完成后的业务处理：parseJson → merge → determineStatus → persist → 构建结果。
+     *
+     * <p>JSON 解析失败时保留已有 cache，不中断流程。
+     */
+    private AiRecipeParseResultCO handleComplete(
+            String sessionId,
+            AiSession session,
+            RecipeParseCache cache,
+            String sanitized,
+            AiChatResult chatResult) {
+
         RecipeParsedData newParsed = parseJson(chatResult.getContent());
-        String reply;
+
         if (newParsed == null) {
-            // 解析失败：保留累积状态，返回错误提示
-            reply = "抱歉，我没有正确理解您的描述。请尝试用更具体的方式描述菜品信息。";
+            // JSON 解析失败：保留累积状态，返回已有 cache
+            String reply = "抱歉，我没有正确理解您的描述。请尝试用更具体的方式描述菜品信息。";
             RecipeParseStatus currentStatus =
                     cache.getAccumulatedParsed() != null
                             ? determineStatus(cache.getAccumulatedParsed())
                             : RecipeParseStatus.PARSING;
 
-            // 仍然记录本轮对话
             session.addTurn(
                     new AiMessage(AiRole.USER, sanitized), new AiMessage(AiRole.ASSISTANT, reply));
             sessionRepository.update(session);
@@ -106,16 +184,11 @@ public class AiRecipeParseCmdExe {
                     .build();
         }
 
-        // 8. merge：非 null 字段覆盖
+        // merge + status + persist
         RecipeParsedData merged = mergeParsed(cache.getAccumulatedParsed(), newParsed);
-
-        // 9. determineStatus
         RecipeParseStatus status = determineStatus(merged);
+        String reply = extractReply(chatResult.getContent(), status);
 
-        // 10. 提取 reply（从 JSON 中取或生成默认）
-        reply = extractReply(chatResult.getContent(), merged, status);
-
-        // 11. 持久化
         session.addTurn(
                 new AiMessage(AiRole.USER, sanitized), new AiMessage(AiRole.ASSISTANT, reply));
         sessionRepository.update(session);
@@ -123,15 +196,12 @@ public class AiRecipeParseCmdExe {
                 sessionId,
                 RecipeParseCache.builder().accumulatedParsed(merged).status(status).build());
 
-        // 12. 构建建议
-        List<String> suggestions = buildSuggestions(merged, status);
-
         return AiRecipeParseResultCO.builder()
                 .sessionId(sessionId)
                 .reply(reply)
                 .parsed(merged)
                 .status(status)
-                .suggestions(suggestions)
+                .suggestions(buildSuggestions(merged, status))
                 .build();
     }
 
@@ -140,20 +210,15 @@ public class AiRecipeParseCmdExe {
         if (sessionId != null) {
             return sessionRepository
                     .findById(sessionId)
-                    .orElseThrow(
-                            () ->
-                                    new io.yggdrasil.labs.mealmate.domain.common.exception
-                                            .BizException(
-                                            io.yggdrasil.labs.mealmate.domain.common.ai.AiErrorCode
-                                                    .AI_SESSION_NOT_FOUND));
+                    .orElseThrow(() -> new BizException(AiErrorCode.AI_SESSION_NOT_FOUND));
         }
-        AiSession newSession = AiSession.builder().createdAt(LocalDateTime.now()).build();
+        AiSession newSession = AiSession.builder().createdAt(java.time.LocalDateTime.now()).build();
         String newId = sessionRepository.create(newSession);
         return sessionRepository.findById(newId).orElseThrow();
     }
 
     /** 处理超过最大轮次的情况。 */
-    private AiRecipeParseResultCO handleMaxTurns(String sessionId, AiSession session) {
+    private AiRecipeParseResultCO handleMaxTurns(String sessionId) {
         RecipeParseCache cache = parseCacheRepository.findBySessionId(sessionId).orElse(null);
         RecipeParsedData accumulated = cache != null ? cache.getAccumulatedParsed() : null;
         RecipeParseStatus status =
@@ -164,7 +229,6 @@ public class AiRecipeParseCmdExe {
             reply = "对话已达上限，当前菜品信息已足够，请确认入库。";
         } else {
             reply = "对话已达上限。当前菜品信息可能不完整，您可以直接确认入库或重新开始录入。";
-            // 超轮次仍不完整时，强制设为 READY_TO_CONFIRM
             status = RecipeParseStatus.READY_TO_CONFIRM;
         }
 
@@ -181,22 +245,25 @@ public class AiRecipeParseCmdExe {
     private RecipeParsedData parseJson(String content) {
         String jsonStr = extractJsonBlock(content);
         if (jsonStr == null) {
-            log.warn("No JSON block found in LLM response");
+            log.warn("[Stream] No JSON block found in LLM response");
             return null;
         }
         try {
             return jsonParser.readValue(jsonStr, RecipeParsedData.class);
         } catch (Exception e) {
-            log.warn("Failed to parse extracted JSON as RecipeParsedData: {}", e.getMessage());
+            log.warn(
+                    "[Stream] Failed to parse extracted JSON as RecipeParsedData: {}",
+                    e.getMessage());
             return null;
         }
     }
 
-    /** 从 AI 输出中提取 JSON 块（```json...``` 或纯 JSON）。 */
+    /** 从 AI 输出中提取 JSON 块。支持两种格式： 1. ```json\n{...}\n``` 代码块（两段式输出） 2. 纯 JSON 字符串（兼容 jsonMode 输出） */
     private String extractJsonBlock(String content) {
         if (content == null || content.isBlank()) {
             return null;
         }
+        // 优先匹配 ```json ... ``` 代码块
         int start = content.indexOf("```json");
         if (start >= 0) {
             int jsonStart = content.indexOf('\n', start) + 1;
@@ -205,6 +272,7 @@ public class AiRecipeParseCmdExe {
                 return content.substring(jsonStart, end).trim();
             }
         }
+        // 兜底：匹配 ``` ... ``` 代码块
         start = content.indexOf("```\n");
         if (start >= 0) {
             int jsonStart = start + 4;
@@ -213,6 +281,7 @@ public class AiRecipeParseCmdExe {
                 return content.substring(jsonStart, end).trim();
             }
         }
+        // 兜底：尝试直接解析（兼容纯 JSON 输出）
         String trimmed = content.trim();
         if (trimmed.startsWith("{")) {
             return trimmed;
@@ -221,14 +290,13 @@ public class AiRecipeParseCmdExe {
     }
 
     /** merge：非 null 字段覆盖。 */
-    RecipeParsedData mergeParsed(RecipeParsedData old, RecipeParsedData newData) {
+    private RecipeParsedData mergeParsed(RecipeParsedData old, RecipeParsedData newData) {
         if (old == null) {
             return newData;
         }
         if (newData == null) {
             return old;
         }
-
         return RecipeParsedData.builder()
                 .name(newData.getName() != null ? newData.getName() : old.getName())
                 .recipeType(
@@ -272,17 +340,8 @@ public class AiRecipeParseCmdExe {
                 .build();
     }
 
-    /**
-     * 判断解析状态。
-     *
-     * <ul>
-     *   <li>name == null → PARSING
-     *   <li>ingredients 为空 → REFINING
-     *   <li>steps == null → REFINING（null 表示未填；空列表表示明确无步骤）
-     *   <li>以上都满足 → READY_TO_CONFIRM
-     * </ul>
-     */
-    RecipeParseStatus determineStatus(RecipeParsedData parsed) {
+    /** 判断解析状态。 */
+    private RecipeParseStatus determineStatus(RecipeParsedData parsed) {
         if (parsed == null || parsed.getName() == null || parsed.getName().isBlank()) {
             return RecipeParseStatus.PARSING;
         }
@@ -296,28 +355,30 @@ public class AiRecipeParseCmdExe {
     }
 
     /** 从 LLM 响应中提取 reply 字段，或生成默认回复。 */
-    private String extractReply(String content, RecipeParsedData parsed, RecipeParseStatus status) {
-        if (content != null && !content.isBlank()) {
-            // 两段式：取 ```json 之前的文字作为 reply
-            int codeBlockStart = content.indexOf("```");
-            if (codeBlockStart > 0) {
-                String reply = content.substring(0, codeBlockStart).trim();
-                if (!reply.isEmpty()) {
-                    return reply;
-                }
-            }
-            // 兜底：尝试从 JSON 中提取 reply 字段
-            try {
-                var node = jsonParser.readTree(content);
-                if (node.has("reply") && !node.get("reply").isNull()) {
-                    return node.get("reply").asText();
-                }
-            } catch (Exception ignored) {
-                // 非 JSON 内容
+    /** 从两段式 AI 输出中提取自然语言 reply 部分（JSON 代码块之前的文字）。 兜底兼容旧格式（JSON 中的 reply 字段）。 */
+    private String extractReply(String content, RecipeParseStatus status) {
+        if (content == null || content.isBlank()) {
+            return status == RecipeParseStatus.READY_TO_CONFIRM
+                    ? "菜品信息已完整，请确认入库。"
+                    : "已解析部分信息，还需要补充更多细节。";
+        }
+        // 两段式：取 ```json 之前的文字作为 reply
+        int codeBlockStart = content.indexOf("```");
+        if (codeBlockStart > 0) {
+            String reply = content.substring(0, codeBlockStart).trim();
+            if (!reply.isEmpty()) {
+                return reply;
             }
         }
-
-        // 默认 reply
+        // 兜底：尝试从 JSON 中提取 reply 字段（兼容旧 jsonMode 输出）
+        try {
+            var node = jsonParser.readTree(content);
+            if (node.has("reply") && !node.get("reply").isNull()) {
+                return node.get("reply").asText();
+            }
+        } catch (Exception ignored) {
+            // 非 JSON 内容，使用默认
+        }
         if (status == RecipeParseStatus.READY_TO_CONFIRM) {
             return "菜品信息已完整，请确认入库。";
         }
@@ -329,7 +390,7 @@ public class AiRecipeParseCmdExe {
         if (status == RecipeParseStatus.READY_TO_CONFIRM) {
             return List.of();
         }
-        List<String> suggestions = new ArrayList<>();
+        java.util.ArrayList<String> suggestions = new java.util.ArrayList<>();
         if (parsed.getSteps() == null) {
             suggestions.add("补充烹饪步骤");
         }
@@ -343,5 +404,10 @@ public class AiRecipeParseCmdExe {
             suggestions.add("指定适用季节");
         }
         return suggestions;
+    }
+
+    /** 清除 in-flight 记录（用于测试或手动恢复）。 */
+    static void clearInFlightSessions() {
+        IN_FLIGHT_SESSIONS.clear();
     }
 }

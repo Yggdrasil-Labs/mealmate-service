@@ -44,7 +44,19 @@ class DeepSeekChatGatewayTest {
                                                 0, new MappingJackson2HttpMessageConverter()))
                         .build();
 
-        gateway = new DeepSeekChatGateway(restClient, props);
+        // streamRestClient 和 parser 在本测试中不使用，但构造需要
+        RestClient streamRestClient =
+                RestClient.builder()
+                        .baseUrl(wm.getHttpBaseUrl())
+                        .defaultHeader("Authorization", "Bearer test-key")
+                        .defaultHeader("Content-Type", "application/json")
+                        .build();
+
+        com.fasterxml.jackson.databind.ObjectMapper objectMapper =
+                new com.fasterxml.jackson.databind.ObjectMapper();
+        DeepSeekStreamParser parser = new DeepSeekStreamParser(objectMapper);
+
+        gateway = new DeepSeekChatGateway(restClient, streamRestClient, parser, props);
     }
 
     @Test

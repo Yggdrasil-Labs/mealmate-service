@@ -43,7 +43,13 @@ class DeepSeekChatGatewayIT {
 
         DeepSeekConfig config = new DeepSeekConfig();
         RestClient restClient = config.deepSeekRestClient(props);
-        gateway = new DeepSeekChatGateway(restClient, props);
+        RestClient streamRestClient = config.deepSeekStreamRestClient(props);
+
+        com.fasterxml.jackson.databind.ObjectMapper objectMapper =
+                new com.fasterxml.jackson.databind.ObjectMapper();
+        DeepSeekStreamParser parser = new DeepSeekStreamParser(objectMapper);
+
+        gateway = new DeepSeekChatGateway(restClient, streamRestClient, parser, props);
     }
 
     /**
