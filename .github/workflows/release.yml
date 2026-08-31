@@ -65,7 +65,7 @@ jobs:
           fetch-depth: 0
 
       - name: Set up JDK ${{ env.JAVA_VERSION }}
-        uses: actions/setup-java@f2beeb24e141e01a676f977032f5a29d81c9e27e
+        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c
         with:
           java-version: ${{ env.JAVA_VERSION }}
           distribution: 'temurin'
@@ -98,7 +98,7 @@ jobs:
           fetch-depth: 0
 
       - name: Set up JDK ${{ env.JAVA_VERSION }}
-        uses: actions/setup-java@f2beeb24e141e01a676f977032f5a29d81c9e27e
+        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c
         with:
           java-version: ${{ env.JAVA_VERSION }}
           distribution: 'temurin'
